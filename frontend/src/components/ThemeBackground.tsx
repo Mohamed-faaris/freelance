@@ -1,5 +1,3 @@
-"use client";
-
 import { useTheme } from "../context/ThemeContext";
 
 interface ThemeBackgroundProps {

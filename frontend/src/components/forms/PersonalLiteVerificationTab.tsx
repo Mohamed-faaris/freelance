@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, FormEvent, useEffect, useRef, ReactNode } from "react";
 import { jsPDF } from "jspdf";
 import { utils, writeFile } from "xlsx";

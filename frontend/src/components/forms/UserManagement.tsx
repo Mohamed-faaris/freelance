@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useMemo } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import {

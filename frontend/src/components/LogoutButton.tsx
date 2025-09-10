@@ -1,14 +1,11 @@
-"use client";
-
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 
 export default function LogoutButton({ className }: { className?: string }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const router = useRouter();
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     try {
       // Call logout API
       await fetch("/api/auth", {
@@ -26,6 +23,8 @@ export default function LogoutButton({ className }: { className?: string }) {
       window.location.href = "/login";
     } catch (error) {
       console.error("Logout error:", error);
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -38,6 +37,7 @@ export default function LogoutButton({ className }: { className?: string }) {
       }`}
     >
       <LogOut className="h-5 w-5 mr-2" />
+      <span>Logout</span>
     </button>
   );
 }

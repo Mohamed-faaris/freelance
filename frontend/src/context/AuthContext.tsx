@@ -1,7 +1,5 @@
-"use client";
-
 import { createContext, useContext, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 
 interface User {
   id: string;

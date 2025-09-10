@@ -1,7 +1,4 @@
-"use client";
-
-import Image from "next/image";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext"; // Adjust the import path as needed
 
 export default function AuthHeader() {
@@ -17,7 +14,7 @@ export default function AuthHeader() {
         <div className="flex items-center">
           {/* Logo */}
           <div className="ml-2">
-            <Image
+            <img
               src="/logo.png"
               alt="argus Logo"
               width={140}
@@ -30,7 +27,7 @@ export default function AuthHeader() {
         {/* Navigation Links */}
         <div className="flex items-center space-x-4">
           <Link
-            href="/login"
+            to="/login"
             className={`text-sm font-medium ${
               darkMode
                 ? "text-gray-300 hover:text-gray-100"
@@ -40,7 +37,7 @@ export default function AuthHeader() {
             Sign In
           </Link>
           <Link
-            href="/register"
+            to="/register"
             className={`text-sm font-medium ${
               darkMode
                 ? "text-gray-300 hover:text-gray-100"

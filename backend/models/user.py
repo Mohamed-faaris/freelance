@@ -12,8 +12,9 @@ class User(BaseModel):
     password: str = Field(..., min_length=8)
     role: Literal["admin", "superadmin"] = "admin"
     permissions: List[UserPermission] = Field(default_factory=lambda: [UserPermission(resource="news", actions=["view"])])
-    createdAt: Optional[datetime] = Field(default_factory=datetime.utcnow)
-    updatedAt: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    createdAt: datetime = Field(exclude=True)
+    updatedAt: datetime = Field(exclude=True)
 
     class Config:
         orm_mode = True
+        

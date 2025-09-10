@@ -4,7 +4,7 @@ from config.db import conn
 from schemas.user import serializeDict, serializeList
 from bson import ObjectId
 from config.db import userCollection
-from datetime import datetime
+from datetime import datetime, timezone
 
 userRoute = APIRouter()
 
@@ -21,15 +21,19 @@ async def find_all_users():
 
 @userRoute.post("/")
 async def create_user(user: User):
-    user_dict = user.dict()
-    userCollection.insert_one(user_dict)
-    return serializeList(userCollection.find())
+    now = datetime.now(timezone.utc)
+    user_dict = user.model_dump()
+    user_dict["createdAt"] = now
+    user_dict["updatedAt"] = now
+    result = userCollection.insert_one(user_dict)
+    created_user = userCollection.find_one({"_id": result.inserted_id})
+    return serializeDict(created_user)
 
 
 @userRoute.put("/{id}")
 async def update_user(id, user: User):
     user_dict = user.dict()
-    user_dict["updatedAt"] = datetime.utcnow()
+    user_dict["updatedAt"] = datetime.now(timezone.utc)
     userCollection.find_one_and_update({"_id": ObjectId(id)}, {"$set": user_dict})
     return serializeDict(userCollection.find_one({"_id": ObjectId(id)}))
 

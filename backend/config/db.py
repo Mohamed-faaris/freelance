@@ -15,3 +15,6 @@ except Exception as e:
     print(e)
     
 db = conn['myapp']
+
+#collections
+userCollection = db['user']

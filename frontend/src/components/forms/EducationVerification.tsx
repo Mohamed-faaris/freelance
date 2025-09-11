@@ -51,7 +51,9 @@ function EducationVerification() {
       setSubmitted(true);
     } catch (err: any) {
       console.error("Error uploading file:", err);
-      setError(err.message || "An unexpected error occurred during verification.");
+      setError(
+        err.message || "An unexpected error occurred during verification."
+      );
     } finally {
       setLoading(false);
     }
@@ -73,7 +75,8 @@ function EducationVerification() {
             darkMode ? "text-gray-400" : "text-gray-600"
           }`}
         >
-          Upload your education proof (10th / 12th / College certificate). File is mandatory.
+          Upload your education proof (10th / 12th / College certificate). File
+          is mandatory.
         </p>
       </div>
 
@@ -116,7 +119,9 @@ function EducationVerification() {
         {submitted && verificationResult && (
           <div
             className={`text-center text-sm font-medium mt-3 ${
-              verificationResult.isValid ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+              verificationResult.isValid
+                ? "text-green-600 dark:text-green-400"
+                : "text-red-600 dark:text-red-400"
             }`}
           >
             {verificationResult.isValid ? (
@@ -125,14 +130,25 @@ function EducationVerification() {
               <>❌ Document is NOT VALID: {verificationResult.details}</>
             )}
             {verificationResult.isValid && verificationResult.details && (
-                <div className={`${darkMode ? "text-gray-300" : "text-gray-700"} mt-2 text-xs`}>
-                    <h4 className="font-bold">Extracted Information:</h4>
-                    <ul className="list-disc list-inside">
-                        {Object.entries(verificationResult.details).map(([key, value]) => (
-                            <li key={key}><strong>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong> {String(value)}</li>
-                        ))}
-                    </ul>
-                </div>
+              <div
+                className={`${
+                  darkMode ? "text-gray-300" : "text-gray-700"
+                } mt-2 text-xs`}
+              >
+                <h4 className="font-bold">Extracted Information:</h4>
+                <ul className="list-disc list-inside">
+                  {Object.entries(verificationResult.details).map(
+                    ([key, value]) => (
+                      <li key={key}>
+                        <strong>
+                          {key.charAt(0).toUpperCase() + key.slice(1)}:
+                        </strong>{" "}
+                        {String(value)}
+                      </li>
+                    )
+                  )}
+                </ul>
+              </div>
             )}
           </div>
         )}

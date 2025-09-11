@@ -27,7 +27,7 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   // In your AuthProvider.tsx file
   useEffect(() => {
@@ -125,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUser(null);
-      router.push("/login");
+      navigate("/login");
     } catch (error) {
       console.error("Logout error:", error);
     }

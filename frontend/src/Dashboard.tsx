@@ -1,8 +1,4 @@
-"use client";
-
-import { useState, useEffect, useMemo } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import Image from "next/image";
+import { useState, useEffect } from "react";
 import {
   User,
   Building2,
@@ -10,40 +6,30 @@ import {
   X,
   ChevronRight,
   ChevronLeft,
-  BarChart3,
+  ChevronDown,
   Bell,
-  Search,
-  Download,
-  Check,
-  Share2,
-  Clock,
-  Filter,
   Newspaper,
   UserCog,
   Logs,
   ShieldCheck,
-  Home,
-  Users,
   Settings,
-  FileText,
-  ChevronDown,
   BookOpen,
   SearchCheckIcon,
 } from "lucide-react";
-import { useTheme } from "../context/ThemeContext";
-import PersonalProfileForm from "../components/forms/PersonalAdvancedVerificationTab";
-import BusinessProfileForm from "../components/forms/BusinessProfileForm";
-import LogoutButton from "website/components/LogoutButton";
-import { useAuth } from "website/context/AuthContext";
-import NewsTab from "website/components/forms/NewsTab";
-import UserManagement from "website/components/forms/UserManagement";
-import ApiAnalytics from "website/components/forms/ApiAnalytics";
-import PersonalMiniVerificationTab from "website/components/forms/PersonalMiniVerificationTab";
-import PersonalLiteVerificationTab from "website/components/forms/PersonalLiteVerificationTab";
-import Toast from "../components/Toast"; // Toast component
-import FassaiProfilePage from "website/components/forms/FssaiProfileForm";
-import EducationVerification from "website/components/forms/EducationVerification";
-import AdvancedSearch from "../components/forms/AdvancedSearch";
+import { useTheme } from "@/context/ThemeContext";
+import PersonalProfileForm from "@/components/forms/PersonalAdvancedVerificationTab";
+import BusinessProfileForm from "@/components/forms/BusinessProfileForm";
+import LogoutButton from "@/components/LogoutButton";
+import { useAuth } from "@/context/AuthContext";
+import NewsTab from "@/components/forms/NewsTab";
+import UserManagement from "@/components/forms/UserManagement";
+import ApiAnalytics from "@/components/forms/ApiAnalytics";
+import PersonalMiniVerificationTab from "@/components/forms/PersonalMiniVerificationTab";
+import PersonalLiteVerificationTab from "@/components/forms/PersonalLiteVerificationTab";
+import Toast from "@/components/Toast"; // Toast component
+import FassaiProfilePage from "@/components/forms/FssaiProfileForm";
+import EducationVerification from "@/components/forms/EducationVerification";
+import AdvancedSearch from "@/components/forms/AdvancedSearch";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("news"); // Default to news tab
@@ -52,7 +38,6 @@ export default function Dashboard() {
   const [tabPermissions, setTabPermissions] = useState<
     Record<string, string[]>
   >({});
-  const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
   interface ToastInfo {
     message: string;
     type: "success" | "error";
@@ -62,7 +47,6 @@ export default function Dashboard() {
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [notifications, setNotifications] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   interface DashboardStats {
     profilesGenerated: number;
@@ -100,8 +84,7 @@ export default function Dashboard() {
 
   const { darkMode, toggleDarkMode } = useTheme();
   const { user, isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
+
 
   // Check if it's mobile on initial load and when window is resized
   useEffect(() => {
@@ -153,11 +136,9 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchPermissions = async () => {
       if (!isAuthenticated) {
-        setIsLoadingPermissions(false);
         return;
       }
 
-      setIsLoadingPermissions(true);
       try {
         const response = await fetch(
           `/api/users/permissions?userId=${user?.id}`
@@ -178,8 +159,6 @@ export default function Dashboard() {
           message: "Failed to load user permissions",
           type: "error",
         });
-      } finally {
-        setIsLoadingPermissions(false);
       }
     };
 
@@ -517,7 +496,7 @@ export default function Dashboard() {
               onClick={() => handleTabChange("news")}
               className="ml-2 cursor-pointer flex items-center"
             >
-              <Image
+              <img
                 src="/logo.png"
                 alt="argus Logo"
                 width={110}

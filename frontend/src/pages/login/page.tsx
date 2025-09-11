@@ -1,7 +1,5 @@
-"use client";
-
 import { useState, type FC, type FormEvent } from "react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 
 /* ---------- ARGUS logo component - plain version ---------- */
 const ArgusLogo: FC = () => (
@@ -54,39 +52,39 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
-  try {
-    const response = await fetch("/api/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Authentication failed");
-    
-    // 📧 Store user email and username in localStorage after successful login
-    if (data.success && data.user) {
-      localStorage.setItem("userEmail", data.user.email);
-      localStorage.setItem("userUsername", data.user.username);
-      localStorage.setItem("userId", data.user.id);
-      
-      console.log("User data stored in localStorage:", {
-        email: data.user.email,
-        username: data.user.username,
-        id: data.user.id
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Authentication failed");
+
+      // 📧 Store user email and username in localStorage after successful login
+      if (data.success && data.user) {
+        localStorage.setItem("userEmail", data.user.email);
+        localStorage.setItem("userUsername", data.user.username);
+        localStorage.setItem("userId", data.user.id);
+
+        console.log("User data stored in localStorage:", {
+          email: data.user.email,
+          username: data.user.username,
+          id: data.user.id,
+        });
+      }
+
+      window.location.href = "/";
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-    
-    window.location.href = "/";
-  } catch (err: any) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4 font-sans">

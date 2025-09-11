@@ -1,9 +1,6 @@
-"use client";
-
 import { useState } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import AuthHeader from "../../components/AuthHeader"; // Adjust the import path as needed
 
 export default function RegisterPage() {
@@ -16,7 +13,7 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +52,7 @@ export default function RegisterPage() {
       }
 
       // Redirect to login page
-      //router.push("/login");
+      navigate("/login");
     } catch (err: any) {
       console.error("Registration error:", err);
       setError(err.message);
@@ -72,7 +69,7 @@ export default function RegisterPage() {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md mt-16">
         <div className="flex justify-center">
-          <Image
+          <img
             src="/logo.png"
             alt="argus Logo"
             width={220}
@@ -86,7 +83,7 @@ export default function RegisterPage() {
         <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
           Or{" "}
           <Link
-            href="/login"
+            to="/login"
             className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
           >
             sign in to your existing account

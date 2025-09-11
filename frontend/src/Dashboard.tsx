@@ -16,20 +16,21 @@ import {
   BookOpen,
   SearchCheckIcon,
 } from "lucide-react";
-import { useTheme } from "@/context/ThemeContext";
-import PersonalProfileForm from "@/components/forms/PersonalAdvancedVerificationTab";
-import BusinessProfileForm from "@/components/forms/BusinessProfileForm";
-import LogoutButton from "@/components/LogoutButton";
-import { useAuth } from "@/context/AuthContext";
-import NewsTab from "@/components/forms/NewsTab";
-import UserManagement from "@/components/forms/UserManagement";
-import ApiAnalytics from "@/components/forms/ApiAnalytics";
-import PersonalMiniVerificationTab from "@/components/forms/PersonalMiniVerificationTab";
-import PersonalLiteVerificationTab from "@/components/forms/PersonalLiteVerificationTab";
-import Toast from "@/components/Toast"; // Toast component
-import FassaiProfilePage from "@/components/forms/FssaiProfileForm";
-import EducationVerification from "@/components/forms/EducationVerification";
-import AdvancedSearch from "@/components/forms/AdvancedSearch";
+// import { useTheme } from "@/context/ThemeContext";
+import PersonalProfileForm from "./components/forms/PersonalAdvancedVerificationTab";
+import BusinessProfileForm from "./components/forms/BusinessProfileForm";
+import LogoutButton from "./components/LogoutButton";
+import { useAuth } from "./context/AuthContext";
+import NewsTab from "./components/forms/NewsTab";
+import UserManagement from "./components/forms/UserManagement";
+import ApiAnalytics from "./components/forms/ApiAnalytics";
+import PersonalMiniVerificationTab from "./components/forms/PersonalMiniVerificationTab";
+import PersonalLiteVerificationTab from "./components/forms/PersonalLiteVerificationTab";
+import Toast from "./components/Toast"; // Toast component
+import FassaiProfilePage from "./components/forms/FssaiProfileForm";
+import EducationVerification from "./components/forms/EducationVerification";
+import AdvancedSearch from "./components/forms/AdvancedSearch";
+import { useTheme } from "./context/ThemeContext";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("news"); // Default to news tab
@@ -38,6 +39,7 @@ export default function Dashboard() {
   const [tabPermissions, setTabPermissions] = useState<
     Record<string, string[]>
   >({});
+
   interface ToastInfo {
     message: string;
     type: "success" | "error";
@@ -47,44 +49,10 @@ export default function Dashboard() {
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [notifications, setNotifications] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
-
-  interface DashboardStats {
-    profilesGenerated: number;
-    businessReportsGenerated: number;
-    dataPointsAnalyzed: string;
-    reportsDownloaded: number;
-    trends: {
-      profilesGenerated: {
-        value: string;
-        text: string;
-        positive: boolean;
-      };
-      businessReportsGenerated: {
-        value: string;
-        text: string;
-        positive: boolean;
-      };
-      dataPointsAnalyzed: {
-        value: string;
-        text: string;
-        positive: boolean;
-      };
-      reportsDownloaded: {
-        value: string;
-        text: string;
-        positive: boolean;
-      };
-    };
-  }
-
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(
-    null
-  );
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const { darkMode, toggleDarkMode } = useTheme();
-  const { user, isAuthenticated, isLoading } = useAuth();
-
+  const { user, isAuthenticated } = useAuth();
 
   // Check if it's mobile on initial load and when window is resized
   useEffect(() => {

@@ -29,7 +29,7 @@ async def login(request: LoginRequest, response: Response):
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
         # Create User instance from document
-        user = User(**user_doc)
+        user = User.model_construct(**user_doc)
 
         # Check password
         if not user.verify_password(request.password):

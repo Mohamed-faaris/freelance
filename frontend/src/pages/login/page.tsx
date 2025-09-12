@@ -1,5 +1,7 @@
+import { API_URL } from "../../../config";
 import { useState, type FC, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+
 
 /* ---------- ARGUS logo component - plain version ---------- */
 const ArgusLogo: FC = () => (
@@ -57,7 +59,7 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch("/api/auth", {
+      const response = await fetch(`${API_URL}/auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

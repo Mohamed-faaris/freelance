@@ -1,4 +1,4 @@
-    x   x   import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Layout from "./layout";
 import Dashboard from "./Dashboard";
 import LoginPage from "./pages/login/page";

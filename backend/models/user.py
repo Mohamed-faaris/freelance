@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import List, Optional, Literal
 from datetime import datetime
 import bcrypt
@@ -18,6 +18,22 @@ class User(BaseModel):
 
     class Config:
         orm_mode = True
+
+    @field_validator('username')
+    @classmethod
+    def username_must_be_unique(cls, v):
+        from config.db import userCollection
+        if userCollection.find_one({"username": v}):
+            raise ValueError('Username already exists')
+        return v
+
+    @field_validator('email')
+    @classmethod
+    def email_must_be_unique(cls, v):
+        from config.db import userCollection
+        if userCollection.find_one({"email": v}):
+            raise ValueError('Email already exists')
+        return v
 
     @staticmethod
     def hash_password(password: str) -> str:

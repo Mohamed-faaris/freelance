@@ -23,6 +23,7 @@ async def find_all_users():
 async def create_user(user: User):
     now = datetime.now(timezone.utc)
     user_dict = user.model_dump()
+    user_dict["password"] = User.hash_password(user_dict["password"])  # Hash the password
     user_dict["createdAt"] = now
     user_dict["updatedAt"] = now
     result = userCollection.insert_one(user_dict)

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Literal
 from datetime import datetime
+import bcrypt
 
 class UserPermission(BaseModel):
     resource: Optional[str] = None
@@ -17,4 +18,11 @@ class User(BaseModel):
 
     class Config:
         orm_mode = True
+
+    @staticmethod
+    def hash_password(password: str) -> str:
+        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    def verify_password(self, password: str) -> bool:
+        return bcrypt.checkpw(password.encode('utf-8'), self.password.encode('utf-8'))
         

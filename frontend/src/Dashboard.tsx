@@ -52,7 +52,7 @@ export default function Dashboard() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const { darkMode, toggleDarkMode } = useTheme();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, setUserDataAuto } = useAuth();
 
   // Check if it's mobile on initial load and when window is resized
   useEffect(() => {
@@ -132,6 +132,11 @@ export default function Dashboard() {
 
     fetchPermissions();
   }, [isAuthenticated, user?.id]);
+
+  useEffect(() => {
+    console.log("Running setUserDataAuto in Dashboard");
+    setUserDataAuto();
+  }, []);
 
   // Define the NavItem interface
   interface NavItem {
@@ -229,7 +234,8 @@ export default function Dashboard() {
   // Check if tab is allowed based on user permissions
   const isTabAllowed = (item: NavItem): boolean => {
     // Superadmin can access everything
-    if (user?.role === "superadmin") return true;
+    if (user?.role === "superadmin") 
+      return true;
 
     // If no permission requirement, it's publicly accessible
     if (!item.requiredPermission) return true;

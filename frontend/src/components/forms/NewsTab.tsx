@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Filter,
 } from "lucide-react";
+import { API_URL } from "../../../config";
 
 // Interface for News Article
 interface NewsArticle {
@@ -174,7 +175,7 @@ const NewsTab: React.FC<NewsTabProps> = ({ searchQuery = "" }) => {
         }
 
         // Construct the final API URL
-        const apiUrl = `/api/news?${queryParams.toString()}`;
+        const apiUrl = `${API_URL}/news?${queryParams.toString()}`;
         console.log("Fetching news from:", apiUrl);
 
         const response = await fetch(apiUrl);

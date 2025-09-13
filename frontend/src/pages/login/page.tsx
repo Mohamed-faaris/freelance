@@ -1,7 +1,7 @@
 import { API_URL } from "../../../config";
 import { useState, type FC, type FormEvent } from "react";
-import { Link } from "react-router-dom";
-
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 /* ---------- ARGUS logo component - plain version ---------- */
 const ArgusLogo: FC = () => (
@@ -47,6 +47,8 @@ const TextField: FC<InputProps> = ({
 
 /* ---------- Page ---------- */
 export default function LoginPage() {
+  const navigate = useNavigate();
+  const { setUserData } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -63,8 +65,12 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
+        credentials: "include",
       });
       const data = await response.json();
+      console.log("Login response data:", data); // Debugging line
+      setUserData(data.user);   
+
       if (!response.ok) throw new Error(data.error || "Authentication failed");
 
       // 📧 Store user email and username in localStorage after successful login
@@ -80,7 +86,7 @@ export default function LoginPage() {
         });
       }
 
-      window.location.href = "/";
+      navigate("/");
     } catch (err: any) {
       setError(err.message);
     } finally {

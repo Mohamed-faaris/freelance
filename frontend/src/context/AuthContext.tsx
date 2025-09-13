@@ -1,3 +1,4 @@
+import { API_URL } from "../../config";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -14,6 +15,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  setUserDataAuto: () => Promise<void>;
+  setUserData: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,6 +25,8 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   login: async () => {},
   logout: async () => {},
+  setUserDataAuto: async () => {},
+  setUserData: function (user: User | null): void {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -29,7 +34,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  // In your AuthProvider.tsx file
+  const setUserData = (user: User | null) => {
+    console.log("Setting user data:", user); // Debugging line
+    setUser(user);
+  };
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -39,9 +48,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             "Cache-Control": "no-cache, no-store, must-revalidate",
             Pragma: "no-cache",
           },
+          credentials: "include", // Ensure cookies are sent
         });
         const data = await res.json();
-
+        console.log("Auth check response data:", data); // Debugging line
         if (data.user) {
           setUser({
             id: data.user._id || data.user.id,
@@ -62,6 +72,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, []);
 
+  const setUserDataAuto = async () => {
+    console.log("Running setUserDataAuto");
+    try {
+      const res = await fetch(`${API_URL}/auth`, {
+        // Add cache control headers to prevent caching
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+        credentials: "include", // Ensure cookies are sent
+      });
+      console.log("Auth check response data:", res); // Debugging line
+      const data = await res.json();
+      console.log("Auth check response data:", data); // Debugging line
+      if (data.user) {
+        setUser(data.user);
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      setUser(null);
+    }
+  };
+
   // Modify the login function
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -72,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // Ensure cookies are sent
         body: JSON.stringify({ email, password }),
       });
 
@@ -87,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           "Cache-Control": "no-cache, no-store, must-revalidate",
           Pragma: "no-cache",
         },
+        credentials: "include", // Ensure cookies are sent
       });
 
       const userData = await userRes.json();
@@ -99,14 +134,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: userData.user.email,
           role: userData.user.role,
         });
+        // Use React Router navigation instead of hard navigation
+        navigate("/");
+        return;
       } else {
         // Fallback to original data if user endpoint fails
         setUser(data.user);
       }
-
-      // Force a hard navigation instead of client-side navigation
-      window.location.href = "/";
-      return;
     } catch (error: any) {
       throw new Error(error.message || "Login failed");
     } finally {
@@ -139,6 +173,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         login,
         logout,
+        setUserDataAuto, // Added to provider value
+        setUserData, // Added to provider value
       }}
     >
       {children}

@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from .user.index import userRoute
 from .auth import authRouter
 from .news import newsRoute
+from .states import statesRoute
 # Import other route modules here as you add them, e.g.:
 # from .other_route import otherRoute
 
@@ -16,6 +17,9 @@ mainRouter.include_router(authRouter, prefix="/auth", tags=["auth"])
 
 # Include news routes
 mainRouter.include_router(newsRoute, prefix="/news", tags=["news"])
+
+# Include states routes
+mainRouter.include_router(statesRoute, prefix="/states", tags=["states"])
 
 # Include other routes here, e.g.:
 # mainRouter.include_router(otherRoute, prefix="/other", tags=["other"])

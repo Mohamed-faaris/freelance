@@ -128,3 +128,4 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+backend/config/__pycache__/db.cpython-312.pyc

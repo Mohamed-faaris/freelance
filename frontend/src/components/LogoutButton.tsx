@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { LogOut } from "lucide-react";
+import { API_URL } from "config";
 
 export default function LogoutButton({ className }: { className?: string }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -8,7 +9,7 @@ export default function LogoutButton({ className }: { className?: string }) {
     setIsLoggingOut(true);
     try {
       // Call logout API
-      await fetch("/api/auth", {
+      await fetch(`${API_URL}/auth`, {
         method: "DELETE",
       });
 

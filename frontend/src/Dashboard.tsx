@@ -31,6 +31,7 @@ import FassaiProfilePage from "./components/forms/FssaiProfileForm";
 import EducationVerification from "./components/forms/EducationVerification";
 import AdvancedSearch from "./components/forms/AdvancedSearch";
 import { useTheme } from "./context/ThemeContext";
+import { API_URL } from "config";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("news"); // Default to news tab
@@ -109,7 +110,7 @@ export default function Dashboard() {
 
       try {
         const response = await fetch(
-          `/api/users/permissions?userId=${user?.id}`
+          `${API_URL}/users/permissions?userId=${user?.id}`
         );
         if (!response.ok) throw new Error("Failed to fetch permissions");
 

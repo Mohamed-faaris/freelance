@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import CourtCaseTab from "./CourtCaseTab";
+import { API_URL } from "config";
 
 interface BusinessProfileData {
   contact_details: {
@@ -344,7 +345,7 @@ export default function BusinessProfilePage() {
         type: "success",
       });
 
-      const response = await fetch("/api/generate-pdf", {
+      const response = await fetch(`${API_URL}/generate-pdf`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -412,7 +413,7 @@ export default function BusinessProfilePage() {
       const companyName =
         companyInfo.CompanyName || basicInfo.CompanyName || `Company-${cin}`;
 
-      const response = await fetch("/api/generate-pdf", {
+      const response = await fetch(`${API_URL}/generate-pdf`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -759,7 +760,7 @@ export default function BusinessProfilePage() {
       const creditLimit = calculateCreditLimit(businessData);
 
       // Send to API
-      const response = await fetch("/api/send-business-email", {
+      const response = await fetch(`${API_URL}/send-business-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2419,7 +2420,7 @@ export default function BusinessProfilePage() {
       setCompanyData(null);
 
       try {
-        const response = await fetch("/api/verification-business", {
+        const response = await fetch(`${API_URL}}/verification-business`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -2454,7 +2455,7 @@ export default function BusinessProfilePage() {
       setCompanyData(null);
 
       try {
-        const response = await fetch("/api/insta-financials", {
+        const response = await fetch(`${API_URL}/insta-financials`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ cin }),

@@ -53,6 +53,7 @@ import {
 } from "date-fns";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import { API_URL } from "config";
 
 // Define types for analytics data
 interface AnalyticsData {
@@ -204,7 +205,7 @@ const ApiAnalytics = () => {
 
       // Fetch analytics data
       const analyticsResponse = await fetch(
-        `/api/analytics?${params.toString()}`
+        `${API_URL}/analytics?${params.toString()}`
       );
 
       if (!analyticsResponse.ok) {
@@ -218,7 +219,7 @@ const ApiAnalytics = () => {
 
       // Fetch logs in a separate call
       const logsResponse = await fetch(
-        `/api/analytics/logs?${params.toString()}`
+        `${API_URL}/analytics/logs?${params.toString()}`
       );
 
       if (logsResponse.ok) {

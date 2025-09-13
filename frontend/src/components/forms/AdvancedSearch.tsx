@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Scale, Building, Users, Crown } from 'lucide-react';
+import { API_URL } from 'config';
 
 function AdvancedSearch() {
   const [selectedCourt, setSelectedCourt] = useState('consumer-forum');
@@ -32,25 +33,25 @@ function AdvancedSearch() {
       id: 'district-court',
       name: 'District Court',
       icon: <Scale className="w-5 h-5" />,
-      endpoint: '/api/district-court/search'
+      endpoint: `${API_URL}/district-court/search`
     },
     {
       id: 'high-court',
       name: 'High Court',
       icon: <Building className="w-5 h-5" />,
-      endpoint: '/api/high-court/search'
+      endpoint: `${API_URL}/high-court/search`
     },
     {
       id: 'consumer-forum',
       name: 'Consumer Forum',
       icon: <Users className="w-5 h-5" />,
-      endpoint: '/api/consumer-forum/search'
+      endpoint: `${API_URL}/consumer-forum/search`
     },
     {
       id: 'supreme-court',
       name: 'Supreme Court',
       icon: <Crown className="w-5 h-5" />,
-      endpoint: '/api/supreme-court/search'
+      endpoint: `${API_URL}/supreme-court/search`
     }
   ];
 
@@ -114,7 +115,7 @@ function AdvancedSearch() {
       const requestBody = buildRequestBody();
 
       // Use your local API route
-      const response = await fetch(`/api/search?page=1&limit=${searchParams.resultsPerPage}`, {
+      const response = await fetch(`${API_URL}/search?page=1&limit=${searchParams.resultsPerPage}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

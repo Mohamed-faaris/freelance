@@ -47,6 +47,7 @@ import {
   Scale,
 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
+import { API_URL } from "config";
 
 // Type definitions
 interface ToastProps {
@@ -760,7 +761,7 @@ export default function PersonalProfilePage() {
 
     try {
       // 1. Fetch main profile data
-      const response = await fetch("/api/verification-advanced", {
+      const response = await fetch(`${API_URL}/verification-advanced`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -789,7 +790,7 @@ export default function PersonalProfilePage() {
       // 3. Fetch court cases
       try {
         console.log("Fetching court cases during profile generation...");
-        const courtResponse = await fetch("/api/court-cases", {
+        const courtResponse = await fetch(`${API_URL}/court-cases`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, profileData }),
@@ -824,7 +825,7 @@ export default function PersonalProfilePage() {
           );
 
           // Generate PDF first
-          const pdfResponse = await fetch("/api/generate-puppeteer-pdf", {
+          const pdfResponse = await fetch(`${API_URL}/generate-puppeteer-pdf`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -851,7 +852,7 @@ export default function PersonalProfilePage() {
               name;
 
             // Send email WITH PDF attachment
-            const emailResponse = await fetch("/api/send-profile-email", {
+            const emailResponse = await fetch(`${API_URL}/send-profile-email`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -889,7 +890,7 @@ export default function PersonalProfilePage() {
             }
           } else {
             // PDF generation failed, send summary email only
-            const emailResponse = await fetch("/api/send-profile-email", {
+            const emailResponse = await fetch(`${API_URL}/send-profile-email`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -952,7 +953,7 @@ export default function PersonalProfilePage() {
       console.log("Generating PDF with existing court case data...");
 
       // Generate PDF
-      const response = await fetch("/api/generate-puppeteer-pdf", {
+      const response = await fetch(`${API_URL}/generate-puppeteer-pdf`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -991,7 +992,7 @@ export default function PersonalProfilePage() {
           console.log("PDF converted to base64, size:", base64String.length);
 
           // Send email with PDF attachment
-          const emailResponse = await fetch("/api/send-profile-email", {
+          const emailResponse = await fetch(`${API_URL}/send-profile-email`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -1675,9 +1676,6 @@ export default function PersonalProfilePage() {
                             PAN:{" "}
                             {profileData.personalInfo?.pan_number ||
                               profileData.personalInfo?.panNumber ||
-                              pan}
-                          </p>
-                        </div>
                       </div>
                       <div className="hidden md:flex space-x-3">
                         <button

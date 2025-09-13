@@ -18,4 +18,4 @@ db = conn['myapp']
 
 #collections
 userCollection = db['user']
-apiAnalyticsCollection = db['api_analytics']
+apiAnalyticsCollection = db['apiAnalytics']

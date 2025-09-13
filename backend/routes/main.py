@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .user import userRoute
+from .user.index import userRoute
 from .auth import authRouter
 from .news import newsRoute
 # Import other route modules here as you add them, e.g.:

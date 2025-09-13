@@ -4,6 +4,7 @@ from .auth import authRouter
 from .news import newsRoute
 from .states import statesRoute
 from .court_cases import courtCasesRouter
+from .search import searchRouter
 # Import other route modules here as you add them, e.g.:
 # from .other_route import otherRoute
 
@@ -24,6 +25,9 @@ mainRouter.include_router(statesRoute, prefix="/states", tags=["states"])
 
 # Include court cases routes
 mainRouter.include_router(courtCasesRouter, prefix="/court-cases", tags=["court-cases"])
+
+# Include search routes
+mainRouter.include_router(searchRouter, prefix="/search", tags=["search"])
 
 # Include other routes here, e.g.:
 # mainRouter.include_router(otherRoute, prefix="/other", tags=["other"])

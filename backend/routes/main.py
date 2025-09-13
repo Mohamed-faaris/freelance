@@ -8,6 +8,7 @@ from .news import newsRoute
 mainRouter = APIRouter()
 
 # Include user routes with a prefix and tags for organization
+# This now includes both user routes and permissions routes (/users/permissions)
 mainRouter.include_router(userRoute, prefix="/users", tags=["users"])
 
 # Include auth routes

@@ -1,3 +1,6 @@
+from pydantic import BaseModel
+from typing import List, Optional
+
 # Serialization for new User model
 def userEntity(item) -> dict:
     return {
@@ -28,3 +31,20 @@ def serializeDict(a) -> dict:
 
 def serializeList(entity) -> list:
     return [serializeDict(a) for a in entity]
+
+class PermissionQuery(BaseModel):
+    role: Optional[str] = None
+    resource: Optional[str] = None
+    userId: Optional[str] = None
+
+class UpdatePermissionsRequest(BaseModel):
+    userId: str
+    permissions: List[dict]  # List of permission objects
+    updatedBy: str
+
+class PermissionResponse(BaseModel):
+    permissions: List[dict]
+
+class UpdatePermissionsResponse(BaseModel):
+    message: str
+    user: dict

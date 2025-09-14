@@ -53,7 +53,7 @@ import {
 } from "date-fns";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { API_URL } from "config";
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Define types for analytics data
 interface AnalyticsData {

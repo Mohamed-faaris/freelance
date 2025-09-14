@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch("/api/auth", {
+        const res = await fetch(`${API_URL}/auth`, {
           // Add cache control headers to prevent caching
           headers: {
             "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/auth", {
+      const res = await fetch(`${API_URL}/auth`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -116,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Make another request to get full user details including role
-      const userRes = await fetch("/api/auth", {
+      const userRes = await fetch(`${API_URL}/auth`, {
         headers: {
           "Cache-Control": "no-cache, no-store, must-revalidate",
           Pragma: "no-cache",
@@ -150,7 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      const res = await fetch("/api/auth/logout", {
+      const res = await fetch(`${API_URL}/auth/logout`, {
         method: "POST",
       });
 

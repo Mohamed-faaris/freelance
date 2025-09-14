@@ -25,6 +25,7 @@ import {
   Info,
 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Enhanced Types
 interface ProfileData {
@@ -233,7 +234,7 @@ const CourtCaseResult: FC<CourtCaseResultProps> = ({ profileData }) => {
 
       console.log("Searching court cases with advanced analysis for:", name);
 
-      const response = await fetch("/api/court-cases", {
+      const response = await fetch(`${API_URL}/court-cases`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

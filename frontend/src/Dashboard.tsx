@@ -31,7 +31,7 @@ import FassaiProfilePage from "./components/forms/FssaiProfileForm";
 import EducationVerification from "./components/forms/EducationVerification";
 import AdvancedSearch from "./components/forms/AdvancedSearch";
 import { useTheme } from "./context/ThemeContext";
-import { API_URL } from "config";
+import { API_URL } from "../config";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("news"); // Default to news tab

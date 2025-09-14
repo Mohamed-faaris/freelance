@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   User,
 } from "lucide-react";
+const API_URL = import.meta.env.VITE_API_URL;
 
 type User = {
   _id: string;
@@ -158,7 +159,7 @@ export default function UserManagement() {
 
       setIsLoading(true);
       try {
-        const response = await fetch("/api/users");
+        const response = await fetch(`${API_URL}/users`);
         if (!response.ok) {
           throw new Error("Failed to fetch users");
         }
@@ -180,7 +181,7 @@ export default function UserManagement() {
       if (user?.role !== "superadmin") return;
 
       try {
-        const response = await fetch("/api/users?role=admin");
+        const response = await fetch(`${API_URL}/users?role=admin`);
         if (!response.ok) throw new Error("Failed to fetch admin users");
 
         const data = await response.json();
@@ -253,7 +254,7 @@ export default function UserManagement() {
     setIsSavingPermissions(true);
 
     try {
-      const response = await fetch("/api/users/permissions", {
+      const response = await fetch(`${API_URL}/users/permissions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -271,7 +272,7 @@ export default function UserManagement() {
       showSuccess("Permissions updated successfully");
 
       // Refresh the admin users list to get the latest changes
-      const refreshResponse = await fetch("/api/users?role=admin");
+      const refreshResponse = await fetch(`${API_URL}/users?role=admin`);
       if (refreshResponse.ok) {
         const data = await refreshResponse.json();
         setAdminUsers(data.users);
@@ -292,7 +293,7 @@ export default function UserManagement() {
       if (user?.role !== "superadmin") return;
 
       try {
-        const response = await fetch("/api/users/permissions?role=admin");
+        const response = await fetch(`${API_URL}/users/permissions?role=admin`);
         if (!response.ok) throw new Error("Failed to fetch permissions");
 
         const data = await response.json();
@@ -404,7 +405,7 @@ export default function UserManagement() {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch("/api/users", {
+      const response = await fetch(`${API_URL}/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -434,7 +435,7 @@ export default function UserManagement() {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`/api/users/${currentUser._id}`, {
+      const response = await fetch(`${API_URL}/users/${currentUser._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -473,7 +474,7 @@ export default function UserManagement() {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`/api/users/${currentUser._id}`, {
+      const response = await fetch(`${API_URL}/users/${currentUser._id}`, {
         method: "DELETE",
       });
 

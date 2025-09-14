@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional, Dict, Any, List
 import requests
 import os
@@ -41,6 +41,14 @@ class SearchRequest(BaseModel):
     searchIn: Optional[str] = None
     establishment: Optional[str] = None
 
+    # Validate searchIn field
+    @field_validator('searchIn')
+    @classmethod
+    def validate_search_in(cls, v):
+        if v is not None and v not in ['petitioner', 'respondent', 'both']:
+            raise ValueError('searchIn must be one of: petitioner, respondent, both')
+        return v
+
 class SearchResponse(BaseModel):
     results: List[Dict[str, Any]]
     page: int
@@ -52,7 +60,7 @@ class SearchResponse(BaseModel):
     apiError: Optional[str] = None
     apiResponse: Optional[Dict[str, Any]] = None
 
-@searchRouter.post("/search", response_model=SearchResponse)
+@searchRouter.post("/", response_model=SearchResponse)
 async def search_court_cases(
     request: SearchRequest,
     page: int = Query(1, ge=1),
@@ -66,9 +74,15 @@ async def search_court_cases(
         search_criteria = {
             "name": request.name,
             "strictMode": request.strictMode,
-            "searchIn": request.searchIn,
-            "establishment": request.establishment
         }
+
+        # Only include searchIn if it's a valid value
+        if request.searchIn and request.searchIn in ['petitioner', 'respondent', 'both']:
+            search_criteria["searchIn"] = request.searchIn
+
+        # Include establishment if provided
+        if request.establishment:
+            search_criteria["establishment"] = request.establishment
 
         print(f'Search request received for court type: {court_type}, page: {page}, limit: {limit}')
         print(f'Search criteria: {search_criteria}')
@@ -100,15 +114,24 @@ async def search_court_cases(
                 )
 
             # Extract results from API response
-            results = api_response.get('results') or api_response.get('data') or api_response or []
+            if isinstance(api_response, list):
+                results = api_response
+            else:
+                results = api_response.get('results') or api_response.get('data') or api_response or []
 
             print(f"Returning {len(results)} results for {court_type}")
+
+            # Get total count safely
+            if isinstance(api_response, dict):
+                total = api_response.get('total', len(results))
+            else:
+                total = len(results)
 
             return SearchResponse(
                 results=results,
                 page=page,
                 limit=limit,
-                total=api_response.get('total', len(results)),
+                total=total,
                 courtType=court_type,
                 searchCriteria={
                     "name": request.name,

@@ -47,7 +47,7 @@ import {
   Scale,
 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
-import { API_URL } from "config";
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Type definitions
 interface ToastProps {
@@ -1676,6 +1676,9 @@ export default function PersonalProfilePage() {
                             PAN:{" "}
                             {profileData.personalInfo?.pan_number ||
                               profileData.personalInfo?.panNumber ||
+                              pan}
+                          </p>
+                        </div>
                       </div>
                       <div className="hidden md:flex space-x-3">
                         <button

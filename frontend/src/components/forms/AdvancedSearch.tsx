@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Scale, Building, Users, Crown } from 'lucide-react';
-import { API_URL } from 'config';
+
+const API_URL = import.meta.env.VITE_API_URL
 
 function AdvancedSearch() {
   const [selectedCourt, setSelectedCourt] = useState('consumer-forum');

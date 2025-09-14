@@ -36,7 +36,8 @@ import {
 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import CourtCaseTab from "./CourtCaseTab";
-import { API_URL } from "config";
+
+const API_URL = import.meta.env.VITE_API_URL
 
 interface BusinessProfileData {
   contact_details: {

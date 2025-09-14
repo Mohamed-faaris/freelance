@@ -7,6 +7,7 @@ from enum import Enum
 class UserRole(str, Enum):
     ADMIN = "admin"
     SUPERADMIN = "superadmin"
+    USER = "user"
 
 class ProfileType(str, Enum):
     MINI = "mini"

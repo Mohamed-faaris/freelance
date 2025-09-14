@@ -11,7 +11,7 @@ class User(BaseModel):
     username: str = Field(..., min_length=1, strip_whitespace=True)
     email: EmailStr
     password: str = Field(..., min_length=8)
-    role: Literal["admin", "superadmin"] = "admin"
+    role: Literal["admin", "superadmin", "user"] = "user"
     permissions: List[UserPermission] = Field(default_factory=lambda: [UserPermission(resource="news", actions=["view"])])
     createdAt: datetime = Field(exclude=True)
     updatedAt: datetime = Field(exclude=True)

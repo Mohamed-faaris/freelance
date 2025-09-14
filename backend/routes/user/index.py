@@ -13,7 +13,7 @@ userRoute = APIRouter()
 userRoute.include_router(permissionsRoute, prefix="/permissions", tags=["permissions"])
 
 
-@userRoute.get("/")
+@userRoute.get("")
 async def find_all_users():
     return serializeList(userCollection.find())
 
@@ -23,7 +23,7 @@ async def find_all_users():
 #     return serializeDict(userCollection.find_one({"_id":ObjectId(id)}))
 
 
-@userRoute.post("/")
+@userRoute.post("")
 async def create_user(user: User):
     now = datetime.now(timezone.utc)
     user_dict = user.model_dump()

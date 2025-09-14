@@ -73,7 +73,7 @@ export default function UserManagement() {
     username: "",
     email: "",
     password: "",
-    role: "admin" as "admin" | "superadmin",
+    role: "admin" as "admin" | "superadmin" | "user",
   });
   const [tableState, setTableState] = useState({
     currentPage: 1,
@@ -181,7 +181,10 @@ export default function UserManagement() {
       if (user?.role !== "superadmin") return;
 
       try {
-        const response = await fetch(`${API_URL}/users?role=admin`);
+        const response = await fetch(`${API_URL}/users?role=admin`,{
+          method: "GET",
+          credentials: "include"
+        });
         if (!response.ok) throw new Error("Failed to fetch admin users");
 
         const data = await response.json();

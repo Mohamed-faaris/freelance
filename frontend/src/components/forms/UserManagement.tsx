@@ -351,6 +351,7 @@ export default function UserManagement() {
   // Process users (filter, sort, and paginate)
   const processedUsers = useMemo(() => {
     // First apply search filter
+    console.log("Filtering users:", users);
     let result = users.filter(
       (user) =>
         user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||

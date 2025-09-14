@@ -53,7 +53,7 @@ export default function Dashboard() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const { darkMode, toggleDarkMode } = useTheme();
-  const { user, isAuthenticated, setUserDataAuto } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   // Check if it's mobile on initial load and when window is resized
   useEffect(() => {
@@ -134,10 +134,6 @@ export default function Dashboard() {
     fetchPermissions();
   }, [isAuthenticated, user?.id]);
 
-  useEffect(() => {
-    console.log("Running setUserDataAuto in Dashboard");
-    setUserDataAuto();
-  }, []);
 
   // Define the NavItem interface
   interface NavItem {

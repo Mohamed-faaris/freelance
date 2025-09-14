@@ -25,15 +25,15 @@ async def login(request: LoginRequest, response: Response):
 
         # Find user
         user_doc = userCollection.find_one({"email": request.email})
-        if not user_doc:
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+        if not  user_doc:
+            raise HTTPException(status_code=401, detail="email not found")
 
         # Create User instance from document
         user = User.model_construct(**user_doc)
 
         # Check password
         if not user.verify_password(request.password):
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+            raise HTTPException(status_code=401, detail="Invalid credentials password")
 
         # Generate JWT token
         token = jwt.encode(
@@ -149,5 +149,73 @@ async def logout_post(response: Response):
         raise HTTPException(status_code=500, detail="Logout failed")
 
 @authRouter.post("/register")
-def register():
-    pass
+def register(request: dict, response: Response):
+    try:
+        # Basic validation
+        username = request.get("username") or request.get("email")
+        email = request.get("email")
+        password = request.get("password")
+
+        if not email or not password:
+            raise HTTPException(status_code=400, detail="Email and password are required")
+
+        # Check if email or username already exists
+        if userCollection.find_one({"email": email}):
+            raise HTTPException(status_code=400, detail="Email already exists")
+        if username and userCollection.find_one({"username": username}):
+            raise HTTPException(status_code=400, detail="Username already exists")
+
+        # Hash password and create user document
+        from models.user import User
+        hashed = User.hash_password(password)
+
+        now = datetime.now(timezone.utc)
+        user_doc = {
+            "username": username,
+            "email": email,
+            "password": hashed,
+            "role": "admin",
+            "permissions": [],
+            "createdAt": now,
+            "updatedAt": now,
+        }
+
+        # Insert into DB
+        res = userCollection.insert_one(user_doc)
+
+        # Prepare response (do not include password)
+        user_id = str(res.inserted_id)
+
+        token = jwt.encode(
+            {"id": user_id, "email": email, "exp": datetime.now(timezone.utc).timestamp() + 60*60*24*7},
+            JWT_SECRET,
+            algorithm="HS256"
+        )
+
+        # Set HTTP-only cookie like login
+        response.set_cookie(
+            key="auth_token",
+            value=token,
+            httponly=True,
+            secure=False,  # Set True in production
+            samesite="strict",
+            max_age=60*60*24*7,
+            path="/"
+        )
+
+        return {
+            "success": True,
+            "user": {
+                "id": user_id,
+                "username": username,
+                "email": email,
+                "role": "admin",
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Register error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+

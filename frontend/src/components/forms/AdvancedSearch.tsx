@@ -114,7 +114,8 @@ function AdvancedSearch() {
 
     try {
       const requestBody = buildRequestBody();
-
+      console.log("Request Body:", requestBody, selectedCourt); // Debug log
+      
       // Use your local API route
       const response = await fetch(`${API_URL}/search?page=1&limit=${searchParams.resultsPerPage}`, {
         method: 'POST',

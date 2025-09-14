@@ -8,7 +8,7 @@ from typing import Optional
 
 permissionsRoute = APIRouter()
 
-@permissionsRoute.get("/", response_model=PermissionResponse)
+@permissionsRoute.get("", response_model=PermissionResponse)
 async def get_permissions(
     role: Optional[str] = Query(None),
     resource: Optional[str] = Query(None),

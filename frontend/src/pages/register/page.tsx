@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import AuthHeader from "../../components/AuthHeader"; // Adjust the import path as needed
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function RegisterPage() {
   console.log("RegisterPage render");
   const [formData, setFormData] = useState({
@@ -30,9 +32,9 @@ export default function RegisterPage() {
     }
 
     try {
-      console.log("Sending registration request to /api/auth");
-      const response = await fetch("/api/auth", {
-        method: "PUT",
+      console.log("Sending registration request to /api/auth/register");
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },

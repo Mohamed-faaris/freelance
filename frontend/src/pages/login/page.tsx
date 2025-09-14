@@ -48,7 +48,6 @@ const TextField: FC<InputProps> = ({
 /* ---------- Page ---------- */
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { setUserData } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -69,7 +68,6 @@ export default function LoginPage() {
       });
       const data = await response.json();
       console.log("Login response data:", data); // Debugging line
-      setUserData(data.user);   
 
       if (!response.ok) throw new Error(data.error || "Authentication failed");
 

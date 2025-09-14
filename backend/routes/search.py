@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, field_validator
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 import requests
 import os
 from dotenv import load_dotenv
@@ -58,7 +58,7 @@ class SearchResponse(BaseModel):
     searchCriteria: Dict[str, Any]
     fallbackMode: Optional[bool] = False
     apiError: Optional[str] = None
-    apiResponse: Optional[Dict[str, Any]] = None
+    apiResponse: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None
 
 @searchRouter.post("/", response_model=SearchResponse)
 async def search_court_cases(

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Literal, Dict, Any
 from datetime import datetime
 from bson import ObjectId
@@ -30,11 +30,13 @@ class ApiAnalytics(BaseModel):
     requestData: Optional[Dict[str, Any]] = None
     responseData: Optional[Dict[str, Any]] = None
 
-    class Config:
-        allow_population_by_field_name = True
-        json_encoders = {
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        populate_by_name=True,
+        json_encoders={
             ObjectId: str
         }
+    )
 
     @classmethod
     def log_api_call(cls, data: Dict[str, Any]) -> Dict[str, Any]:

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr, field_validator
+from pydantic import BaseModel, Field, EmailStr, field_validator, ConfigDict
 from typing import List, Optional, Literal
 from datetime import datetime
 import bcrypt
@@ -16,8 +16,9 @@ class User(BaseModel):
     createdAt: datetime = Field(exclude=True)
     updatedAt: datetime = Field(exclude=True)
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
     @field_validator('username')
     @classmethod

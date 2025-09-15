@@ -6,6 +6,9 @@ from .states import statesRoute
 from .court_cases import courtCasesRouter
 from .search import searchRouter
 from .analytics import analyticsRouter
+from .verification_advanced import verificationRouter
+from .verification_lite import verificationLiteRouter
+from .verification_mini import verificationMiniRouter
 # Import other route modules here as you add them, e.g.:
 # from .other_route import otherRoute
 
@@ -32,6 +35,15 @@ mainRouter.include_router(searchRouter, prefix="/search", tags=["search"])
 
 # Include analytics routes
 mainRouter.include_router(analyticsRouter, prefix="/analytics", tags=["analytics"])
+
+# Include verification routes
+mainRouter.include_router(verificationRouter, prefix="/verification", tags=["verification"])
+
+# Include lite verification routes
+mainRouter.include_router(verificationLiteRouter, prefix="/verification", tags=["verification-lite"])
+
+# Include mini verification routes
+mainRouter.include_router(verificationMiniRouter, prefix="/verification", tags=["verification-mini"])
 
 # Include other routes here, e.g.:
 # mainRouter.include_router(otherRoute, prefix="/other", tags=["other"])

@@ -15,7 +15,7 @@ userRoute.include_router(permissionsRoute, prefix="/permissions", tags=["permiss
 
 @userRoute.get("")
 async def find_all_users():
-    return serializeList(userCollection.find())
+    return {"users":serializeList(userCollection.find())}
 
 
 # @user.get('/{id}')

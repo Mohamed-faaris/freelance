@@ -21,7 +21,7 @@ def authenticate(request: Request):
     except:
         return None
 
-@analyticsRouter.get("/")
+@analyticsRouter.get("")
 async def get_analytics(
     request: Request,
     startDate: Optional[str] = Query(None),

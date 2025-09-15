@@ -51,7 +51,7 @@ async def get_permissions(
         raise HTTPException(status_code=500, detail=f"Failed to fetch permissions: {str(e)}")
 
 
-@permissionsRoute.post("/")
+@permissionsRoute.post("")
 async def update_permissions(request: UpdatePermissionsRequest):
     try:
         # Validate required fields

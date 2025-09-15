@@ -7,7 +7,6 @@ from enum import Enum
 class UserRole(str, Enum):
     ADMIN = "admin"
     SUPERADMIN = "superadmin"
-    USER = "user"
 
 class ProfileType(str, Enum):
     MINI = "mini"
@@ -16,7 +15,7 @@ class ProfileType(str, Enum):
     BUSINESS = "business"
 
 class ApiAnalytics(BaseModel):
-    userId: ObjectId = Field(..., alias="_id")
+    userId: ObjectId = Field(...)
     username: str
     userRole: UserRole
     service: str
@@ -40,22 +39,23 @@ class ApiAnalytics(BaseModel):
     @classmethod
     def log_api_call(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         from config.db import apiAnalyticsCollection
-        doc = {
-            "userId": data["userId"],
-            "username": data["username"],
-            "userRole": data["userRole"],
-            "service": data["service"],
-            "endpoint": data["endpoint"],
-            "apiVersion": data.get("apiVersion", "v1"),
-            "cost": data["cost"],
-            "statusCode": data["statusCode"],
-            "responseTime": data["responseTime"],
-            "profileType": data.get("profileType"),
-            "businessId": data.get("businessId"),
-            "createdAt": datetime.utcnow(),
-            "requestData": data.get("requestData"),
-            "responseData": data.get("responseData")
-        }
+        instance = cls(**data)
+        doc = instance.dict()
         result = apiAnalyticsCollection.insert_one(doc)
         doc["_id"] = result.inserted_id
         return doc
+
+def create_api_analytics_indexes():
+    from config.db import apiAnalyticsCollection
+    # Single field indexes
+    apiAnalyticsCollection.create_index("userId")
+    apiAnalyticsCollection.create_index("username")
+    apiAnalyticsCollection.create_index("service")
+    apiAnalyticsCollection.create_index("endpoint")
+    apiAnalyticsCollection.create_index("profileType")
+    apiAnalyticsCollection.create_index("businessId")
+    apiAnalyticsCollection.create_index("createdAt")
+    # Compound indexes
+    apiAnalyticsCollection.create_index([("userId", 1), ("createdAt", 1)])
+    apiAnalyticsCollection.create_index([("service", 1), ("endpoint", 1), ("createdAt", 1)])
+    apiAnalyticsCollection.create_index([("profileType", 1), ("createdAt", 1)])

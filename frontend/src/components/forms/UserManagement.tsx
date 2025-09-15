@@ -69,6 +69,10 @@ export default function UserManagement() {
     Record<string, string[]>
   >({});
 
+  useEffect(() => {
+    console.log("Admin users list updated", adminUsers);
+  }, [adminUsers]);
+
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -181,9 +185,9 @@ export default function UserManagement() {
       if (user?.role !== "superadmin") return;
 
       try {
-        const response = await fetch(`${API_URL}/users?role=admin`,{
+        const response = await fetch(`${API_URL}/users?role=admin`, {
           method: "GET",
-          credentials: "include"
+          credentials: "include",
         });
         if (!response.ok) throw new Error("Failed to fetch admin users");
 
@@ -260,24 +264,25 @@ export default function UserManagement() {
       const response = await fetch(`${API_URL}/users/permissions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           userId: selectedAdminUser._id,
           permissions: selectedAdminUser.permissions,
           updatedBy: user?.id,
         }),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to save permissions");
       }
-
       showSuccess("Permissions updated successfully");
 
       // Refresh the admin users list to get the latest changes
+      console.log("Refreshing admin users list");
       const refreshResponse = await fetch(`${API_URL}/users?role=admin`);
       if (refreshResponse.ok) {
         const data = await refreshResponse.json();
+        console.log("Fetched admin users:", data.users);
         setAdminUsers(data.users);
       }
 
@@ -1283,7 +1288,8 @@ export default function UserManagement() {
           <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             {/* Background overlay */}
             <div
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"
+              className="fixed inset-0 z-0 backdrop-blur-sm transition-opacity"
+              aria-hidden="true"
               onClick={() => setShowAccessControlModal(false)}
             ></div>
 
@@ -1293,7 +1299,7 @@ export default function UserManagement() {
 
             {/* Modal panel */}
             <div
-              className={`inline-block w-full max-w-3xl transform overflow-hidden rounded-lg text-left align-bottom shadow-xl transition-all sm:my-8 sm:align-middle ${
+              className={`inline-block w-full z-10 max-w-3xl transform overflow-hidden rounded-lg text-left align-bottom shadow-xl transition-all sm:my-8 sm:align-middle backdrop-blur-sm ${
                 darkMode ? "bg-gray-800" : "bg-white"
               }`}
             >
@@ -1465,7 +1471,7 @@ export default function UserManagement() {
           <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             {/* Background overlay */}
             <div
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"
+              className="fixed inset-0 backdrop-blur-sm transition-opacity"
               onClick={() => setShowAddModal(false)}
             ></div>
 
@@ -1475,7 +1481,7 @@ export default function UserManagement() {
 
             {/* Modal panel */}
             <div
-              className={`inline-block transform overflow-hidden rounded-lg text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle ${
+              className={`inline-block transform overflow-hidden rounded-lg text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle backdrop-blur-sm ${
                 darkMode ? "bg-gray-800" : "bg-white"
               }`}
             >
@@ -1708,14 +1714,14 @@ export default function UserManagement() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"
+              className="fixed inset-0 backdrop-blur-sm transition-opacity"
               onClick={() => setShowEditModal(false)}
             ></div>
             <span className="hidden sm:inline-block sm:h-screen sm:align-middle">
               &#8203;
             </span>
             <div
-              className={`inline-block transform overflow-hidden rounded-lg text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle ${
+              className={`inline-block transform overflow-hidden rounded-lg text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle backdrop-blur-sm ${
                 darkMode ? "bg-gray-800" : "bg-white"
               }`}
             >
@@ -1945,14 +1951,14 @@ export default function UserManagement() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"
+              className="fixed inset-0 backdrop-blur-sm transition-opacity"
               onClick={() => setShowDeleteModal(false)}
             ></div>
             <span className="hidden sm:inline-block sm:h-screen sm:align-middle">
               &#8203;
             </span>
             <div
-              className={`inline-block transform overflow-hidden rounded-lg text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle ${
+              className={`inline-block transform overflow-hidden rounded-lg text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle backdrop-blur-sm ${
                 darkMode ? "bg-gray-800" : "bg-white"
               }`}
             >

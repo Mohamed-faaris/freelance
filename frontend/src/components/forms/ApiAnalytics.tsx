@@ -206,6 +206,9 @@ const ApiAnalytics = () => {
       // Fetch analytics data
       const analyticsResponse = await fetch(
         `${API_URL}/analytics?${params.toString()}`
+        ,{
+          credentials: "include",
+        }
       );
 
       if (!analyticsResponse.ok) {
@@ -219,7 +222,10 @@ const ApiAnalytics = () => {
 
       // Fetch logs in a separate call
       const logsResponse = await fetch(
-        `${API_URL}/analytics/logs?${params.toString()}`
+        `${API_URL}/analytics/logs?${params.toString()}`,
+        {
+          credentials: "include",
+        }
       );
 
       if (logsResponse.ok) {

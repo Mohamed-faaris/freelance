@@ -41,7 +41,7 @@ async def get_analytics(
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
 
-    user = User(**user_doc)
+    user = User.model_construct(**user_doc)
 
     # Check permissions
     if user.role != "superadmin" and not any(p.resource == "api-analytics" for p in user.permissions):
@@ -193,7 +193,7 @@ async def get_analytics_logs(
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
 
-    user = User(**user_doc)
+    user = User.model_construct(**user_doc)
 
     # Check permissions
     if user.role != "superadmin" and not any(p.resource == "api-analytics" for p in user.permissions):
@@ -230,7 +230,7 @@ async def get_analytics_logs(
         
         # Get logs
         logs = []
-        async for log in logs_cursor:
+        for log in logs_cursor:
             logs.append({
                 "timestamp": log["createdAt"],
                 "userId": str(log["userId"]),

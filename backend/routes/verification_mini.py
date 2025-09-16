@@ -176,7 +176,7 @@ async def track_external_api_call(
 
         # Log successful API call if analytics tracking is enabled
         if ENABLE_ANALYTICS_TRACKING:
-            await ApiAnalytics.log_api_call({
+            ApiAnalytics.log_api_call({
                 "userId": ObjectId(user_id),
                 "username": username,
                 "userRole": user_role,
@@ -198,7 +198,7 @@ async def track_external_api_call(
 
         # Log failed API call if analytics tracking is enabled
         if ENABLE_ANALYTICS_TRACKING:
-            await ApiAnalytics.log_api_call({
+            ApiAnalytics.log_api_call({
                 "userId": ObjectId(user_id),
                 "username": username,
                 "userRole": user_role,
@@ -254,7 +254,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
             raise HTTPException(status_code=401, detail="Authentication required")
 
         # Get user
-        user_doc = userCollection.find_one({"_id": ObjectId(decoded["id"])})
+        user_doc = await userCollection.find_one({"_id": ObjectId(decoded["id"])})
         if not user_doc:
             print(f"User not found for ID: {decoded['id']}")
             raise HTTPException(status_code=401, detail="User not found")

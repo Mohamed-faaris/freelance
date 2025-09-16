@@ -72,6 +72,7 @@ API_COSTS = {
     "verification/gstinlite": 2.5,
     "verification/gstin-advanced": 5.0,
     "verification/pan-msme-check": 5.0,
+    "business-compliance/fssai-verification": 3.0,
     "financial-services/credit-bureau/credit-report": 30.0,
     "default": 1.0,
 }
@@ -275,7 +276,7 @@ async def verification_advanced(request: Request, data: VerificationRequest):
             raise HTTPException(status_code=401, detail="Authentication required")
 
         # Get user
-        user_doc = userCollection.find_one({"_id": ObjectId(decoded["id"])})
+        user_doc = await userCollection.find_one({"_id": ObjectId(decoded["id"])})
         if not user_doc:
             print(f"User not found for ID: {decoded['id']}")
             raise HTTPException(status_code=401, detail="User not found")

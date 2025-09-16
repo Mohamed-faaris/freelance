@@ -24,7 +24,7 @@ async def login(request: LoginRequest, response: Response):
             raise HTTPException(status_code=400, detail="Email and password are required")
 
         # Find user
-        user_doc = userCollection.find_one({"email": request.email})
+        user_doc = await userCollection.find_one({"email": request.email})
         if not  user_doc:
             raise HTTPException(status_code=401, detail="email not found")
 
@@ -86,7 +86,7 @@ async def get_current_user(request: Request):
 
         # Find user by ID
         from bson import ObjectId
-        user_doc = userCollection.find_one({"_id": ObjectId(decoded["id"])})
+        user_doc = await userCollection.find_one({"_id": ObjectId(decoded["id"])})
 
         if not user_doc:
             raise HTTPException(status_code=404, detail="User not found")
@@ -149,7 +149,7 @@ async def logout_post(response: Response):
         raise HTTPException(status_code=500, detail="Logout failed")
 
 @authRouter.post("/register")
-def register(request: dict, response: Response):
+async def register(request: dict, response: Response):
     try:
         # Basic validation
         username = request.get("username") or request.get("email")
@@ -160,9 +160,9 @@ def register(request: dict, response: Response):
             raise HTTPException(status_code=400, detail="Email and password are required")
 
         # Check if email or username already exists
-        if userCollection.find_one({"email": email}):
+        if await userCollection.find_one({"email": email}):
             raise HTTPException(status_code=400, detail="Email already exists")
-        if username and userCollection.find_one({"username": username}):
+        if username and await userCollection.find_one({"username": username}):
             raise HTTPException(status_code=400, detail="Username already exists")
 
         # Hash password and create user document
@@ -181,7 +181,7 @@ def register(request: dict, response: Response):
         }
 
         # Insert into DB
-        res = userCollection.insert_one(user_doc)
+        res = await userCollection.insert_one(user_doc)
 
         # Prepare response (do not include password)
         user_id = str(res.inserted_id)

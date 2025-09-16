@@ -39,11 +39,11 @@ class ApiAnalytics(BaseModel):
     )
 
     @classmethod
-    def log_api_call(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    async def log_api_call(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         from config.db import apiAnalyticsCollection
         instance = cls(**data)
         doc = instance.dict()
-        result = apiAnalyticsCollection.insert_one(doc)
+        result = await apiAnalyticsCollection.insert_one(doc)
         doc["_id"] = result.inserted_id
         return doc
 

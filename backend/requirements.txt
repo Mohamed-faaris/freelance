@@ -19,6 +19,7 @@ Jinja2==3.1.6
 markdown-it-py==4.0.0
 MarkupSafe==3.0.2
 mdurl==0.1.2
+motor==3.7.1
 pydantic==2.11.7
 pydantic_core==2.33.2
 Pygments==2.19.2
@@ -42,4 +43,3 @@ urllib3==2.5.0
 uvicorn==0.35.0
 watchfiles==1.1.0
 websockets==15.0.1
-weasyprint==61.2

@@ -97,7 +97,7 @@ async def track_external_api_call(
 
         # Log successful API call if analytics tracking is enabled
         if ENABLE_ANALYTICS_TRACKING:
-            await ApiAnalytics.log_api_call({
+            ApiAnalytics.log_api_call({
                 "userId": ObjectId(user_id),
                 "username": username,
                 "userRole": user_role,
@@ -119,7 +119,7 @@ async def track_external_api_call(
 
         # Log failed API call if analytics tracking is enabled
         if ENABLE_ANALYTICS_TRACKING:
-            await ApiAnalytics.log_api_call({
+            ApiAnalytics.log_api_call({
                 "userId": ObjectId(user_id),
                 "username": username,
                 "userRole": user_role,

@@ -37,7 +37,7 @@ async def get_analytics(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     # Get user
-    user_doc = userCollection.find_one({"_id": ObjectId(decoded["id"])})
+    user_doc = await userCollection.find_one({"_id": ObjectId(decoded["id"])})
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
 
@@ -189,7 +189,7 @@ async def get_analytics_logs(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     # Get user
-    user_doc = userCollection.find_one({"_id": ObjectId(decoded["id"])})
+    user_doc = await userCollection.find_one({"_id": ObjectId(decoded["id"])})
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
 

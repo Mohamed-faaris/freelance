@@ -772,6 +772,7 @@ export default function PersonalProfilePage() {
           dl_number: dl,
           rc_number: rc,
         }),
+        credentials: "include",
       });
 
       if (!response.ok) throw new Error("Failed to generate profile");
@@ -794,6 +795,7 @@ export default function PersonalProfilePage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, profileData }),
+          credentials: "include",
         });
 
         if (courtResponse.ok) {
@@ -832,6 +834,7 @@ export default function PersonalProfilePage() {
               profileData: profileData,
               courtCaseData: profileData.courtCases,
             }),
+            credentials: "include",
           });
 
           if (pdfResponse.ok) {
@@ -871,6 +874,7 @@ export default function PersonalProfilePage() {
                   contentType: "application/pdf",
                 },
               }),
+              credentials: "include",
             });
 
             if (emailResponse.ok) {
@@ -902,6 +906,7 @@ export default function PersonalProfilePage() {
                 profileData: profileData,
                 // No PDF attachment
               }),
+              credentials: "include",
             });
 
             if (emailResponse.ok) {
@@ -960,6 +965,7 @@ export default function PersonalProfilePage() {
           profileData: profileData,
           courtCaseData: profileData.courtCases,
         }),
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -999,6 +1005,7 @@ export default function PersonalProfilePage() {
               "x-user-email": userEmail,
               "x-user-username": userUsername || "User",
             },
+            credentials: "include",
             body: JSON.stringify({
               name: fullName,
               profileData: profileData,

@@ -453,6 +453,7 @@ export default function PersonalProfilePage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           name,
           mobile_number: mobile,
@@ -495,6 +496,7 @@ export default function PersonalProfilePage() {
               headers: {
                 "Content-Type": "application/json",
               },
+              credentials: "include",
               body: JSON.stringify({
                 service: "driving-license",
                 dl_number: dl,
@@ -594,6 +596,7 @@ export default function PersonalProfilePage() {
             headers: {
               "Content-Type": "application/json",
             },
+            credentials: "include",
             body: JSON.stringify({
               service: "vehicle-rc",
               rc_number: rc,
@@ -1331,6 +1334,7 @@ export default function PersonalProfilePage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(emailData),
       });
 

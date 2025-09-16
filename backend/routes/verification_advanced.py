@@ -45,6 +45,11 @@ BASE_URL_V2 = os.getenv("BASE_URL_V2", "https://production.deepvue.tech/v2")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 ENABLE_ANALYTICS_TRACKING = os.getenv("ENABLE_ANALYTICS_TRACKING", "true").lower() == "true"
 VERIFICATION_CACHE_TTL = int(os.getenv("VERIFICATION_CACHE_TTL", "3600"))  # 1 hour default
+print(f"verification_advanced loaded. BASE_URL_V1={BASE_URL_V1}, BASE_URL_V2={BASE_URL_V2}, ENABLE_ANALYTICS_TRACKING={ENABLE_ANALYTICS_TRACKING}")
+
+# Simple in-memory token cache to avoid repeated auth requests
+_TOKEN_CACHE: dict = {"token": None, "expiry": 0}
+_TOKEN_LOCK = None
 
 # Production limits
 PRODUCTION_LIMITS = {
@@ -79,38 +84,72 @@ class VerificationRequest(BaseModel):
 
 def authenticate(request: Request):
     token = request.cookies.get("auth_token")
+    print("authenticate: checking auth_token cookie")
     if not token:
+        print("authenticate: no token found in cookies")
         return None
     try:
         decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        print(f"authenticate: token decoded for id={decoded.get('id')}")
         return decoded
-    except:
+    except Exception as e:
+        print(f"authenticate: token decode failed: {e}")
         return None
 
 async def get_access_token():
     """Get access token from auth service"""
     try:
-        # Prepare the request to get access token
-        token_url = f"{AUTH_SERVICE_URL}/oauth/token"
-        payload = {
-            "grant_type": "client_credentials",
-            "client_id": AUTH_SERVICE_CLIENT_ID,
-            "client_secret": AUTH_SERVICE_CLIENT_SECRET,
-            "scope": "api"
-        }
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
+        # Reuse cached token if still valid
+        import time
+        if _TOKEN_CACHE.get("token") and time.time() < _TOKEN_CACHE.get("expiry", 0):
+            print("get_access_token: using cached access token")
+            return _TOKEN_CACHE["token"]
 
-        # Make the request synchronously in a thread
-        def _get_token():
-            response = requests.post(token_url, data=payload, headers=headers, timeout=10)
-            response.raise_for_status()
-            token_data = response.json()
-            return token_data.get("access_token")
+        # Ensure a single coroutine performs the token fetch at a time
+        global _TOKEN_LOCK
+        if _TOKEN_LOCK is None:
+            _TOKEN_LOCK = asyncio.Lock()
 
-        access_token = await asyncio.to_thread(_get_token)
-        return access_token
+        async with _TOKEN_LOCK:
+            # Another coroutine may have populated the cache while waiting for the lock
+            if _TOKEN_CACHE.get("token") and time.time() < _TOKEN_CACHE.get("expiry", 0):
+                print("get_access_token: using cached access token (after lock)")
+                return _TOKEN_CACHE["token"]
+
+            print("get_access_token: starting token retrieval from auth service")
+            # Prepare the request to get access token
+            token_url = f"{AUTH_SERVICE_URL}/oauth/token"
+            print(f"get_access_token: token_url={token_url}")
+            payload = {
+                "grant_type": "client_credentials",
+                "client_id": AUTH_SERVICE_CLIENT_ID,
+                "client_secret": AUTH_SERVICE_CLIENT_SECRET,
+                "scope": "api"
+            }
+            headers = {
+                "Content-Type": "application/x-www-form-urlencoded"
+            }
+
+            # Make the request synchronously in a thread and return the parsed token data
+            def _get_token_data():
+                response = requests.post(token_url, data=payload, headers=headers, timeout=10)
+                response.raise_for_status()
+                return response.json()
+
+            token_data = await asyncio.to_thread(_get_token_data)
+            access_token = token_data.get("access_token")
+            expires_in = token_data.get("expires_in") or token_data.get("expiry")
+
+            if isinstance(expires_in, (int, float)):
+                expiry_time = time.time() + float(expires_in)
+            else:
+                # default cache for 30 minutes
+                expiry_time = time.time() + 30 * 60
+
+            _TOKEN_CACHE["token"] = access_token
+            _TOKEN_CACHE["expiry"] = expiry_time
+            print(f"get_access_token: obtained access token: {'<masked>' if access_token else None}, cached until {expiry_time}")
+            return access_token
 
     except Exception as error:
         print(f"Failed to get access token: {error}")
@@ -120,9 +159,15 @@ async def get_access_token():
 async def fetch_with_timeout(url: str, headers: dict, timeout: int = PRODUCTION_LIMITS["API_TIMEOUT"]):
     """Fetch with timeout protection using requests in a thread"""
     def _sync_request():
-        response = requests.get(url, headers=headers, timeout=timeout / 1000)  # Convert ms to seconds
-        response.raise_for_status()
-        return response.json()
+        print(f"fetch_with_timeout: making GET {url} with timeout={timeout}ms")
+        try:
+            response = requests.get(url, headers=headers, timeout=timeout / 1000)  # Convert ms to seconds
+            print(f"fetch_with_timeout: received status {response.status_code} for {url}")
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"fetch_with_timeout: request failed for {url}: {e}")
+            raise
     
     return await asyncio.to_thread(_sync_request)
 
@@ -137,51 +182,83 @@ async def track_external_api_call(
 ):
     """Track external API calls with analytics"""
     start_time = datetime.now()
-
+    print(f"track_external_api_call: starting call service={service} user={username} id={user_id}")
     try:
         result = await api_function(*args, **kwargs)
         response_time = (datetime.now() - start_time).total_seconds() * 1000  # Convert to ms
         cost = API_COSTS.get(service, API_COSTS["default"])
+        print(f"track_external_api_call: success service={service} response_time_ms={response_time} cost={cost}")
 
         # Log successful API call if analytics tracking is enabled
         if ENABLE_ANALYTICS_TRACKING:
-            await ApiAnalytics.log_api_call({
-                "userId": ObjectId(user_id),
-                "username": username,
-                "userRole": user_role,
-                "service": service,
-                "endpoint": service,
-                "apiVersion": "v2" if "pan-plus" in service else "v1",
-                "cost": cost,
-                "statusCode": 200,
-                "responseTime": response_time,
-                "profileType": "advanced",
-                "requestData": args[0] if args else None,
-                "responseData": result,
-                "businessId": None,
-            })
+            try:
+                # Ensure requestData and responseData are dictionaries for ApiAnalytics
+                request_payload = None
+                if args:
+                    first = args[0]
+                    if isinstance(first, dict):
+                        request_payload = first
+                    else:
+                        request_payload = {"value": first}
+
+                response_payload = result if isinstance(result, dict) else {"result": result}
+
+                await asyncio.to_thread(ApiAnalytics.log_api_call, {
+                    "userId": ObjectId(user_id),
+                    "username": username,
+                    "userRole": user_role,
+                    "service": service,
+                    "endpoint": service,
+                    "apiVersion": "v2" if "pan-plus" in service else "v1",
+                    "cost": cost,
+                    "statusCode": 200,
+                    "responseTime": response_time,
+                    "profileType": "advanced",
+                    "requestData": request_payload,
+                    "responseData": response_payload,
+                    "businessId": None,
+                })
+                print(f"track_external_api_call: analytics logged for service={service}")
+            except Exception as ae:
+                print(f"track_external_api_call: analytics logging failed: {ae}")
 
         return result
     except Exception as error:
         response_time = (datetime.now() - start_time).total_seconds() * 1000
+        print(f"track_external_api_call: error service={service} error={error} response_time_ms={response_time}")
 
         # Log failed API call if analytics tracking is enabled
         if ENABLE_ANALYTICS_TRACKING:
-            await ApiAnalytics.log_api_call({
-                "userId": ObjectId(user_id),
-                "username": username,
-                "userRole": user_role,
-                "service": service,
-                "endpoint": service,
-                "apiVersion": "v2" if "pan-plus" in service else "v1",
-                "cost": API_COSTS.get(service, API_COSTS["default"]),
-                "statusCode": 500,
-                "responseTime": response_time,
-                "profileType": "advanced",
-                "requestData": args[0] if args else None,
-                "responseData": {"error": str(error)},
-                "businessId": None,
-            })
+            try:
+                # Ensure requestData and responseData are dictionaries for ApiAnalytics (failure case)
+                request_payload = None
+                if args:
+                    first = args[0]
+                    if isinstance(first, dict):
+                        request_payload = first
+                    else:
+                        request_payload = {"value": first}
+
+                response_payload = {"error": str(error)}
+
+                await asyncio.to_thread(ApiAnalytics.log_api_call, {
+                    "userId": ObjectId(user_id),
+                    "username": username,
+                    "userRole": user_role,
+                    "service": service,
+                    "endpoint": service,
+                    "apiVersion": "v2" if "pan-plus" in service else "v1",
+                    "cost": API_COSTS.get(service, API_COSTS["default"]),
+                    "statusCode": 500,
+                    "responseTime": response_time,
+                    "profileType": "advanced",
+                    "requestData": request_payload,
+                    "responseData": response_payload,
+                    "businessId": None,
+                })
+                print(f"track_external_api_call: analytics logged (failure) for service={service}")
+            except Exception as ae:
+                print(f"track_external_api_call: analytics logging failed for error case: {ae}")
 
         raise error
 
@@ -416,6 +493,9 @@ def process_profile_data(data):
     initial_responses = data["initial_responses"]
     additional_responses = data["additional_responses"]
 
+    print(f"process_profile_data: starting profile processing for PAN: {input_data.get('pan_number', 'N/A')[:4]}****")
+    print(f"process_profile_data: received {len(initial_responses)} initial responses and {len(additional_responses)} additional responses")
+
     profile_data = {
         "input": input_data,
         "identityInfo": {},
@@ -429,9 +509,20 @@ def process_profile_data(data):
     }
 
     try:
-        # Personal Information
+        # Personal Information Processing
+        print("process_profile_data: processing personal information...")
         pan_plus_response = next((r for r in initial_responses if r["name"] == "PAN Plus"), {}).get("response", {}).get("data")
         pan_to_father_name_response = next((r for r in initial_responses if r["name"] == "PAN to Father Name"), {}).get("response", {}).get("data")
+
+        if pan_plus_response:
+            print(f"process_profile_data: PAN Plus data found - full_name: {pan_plus_response.get('full_name', 'N/A')}, gender: {pan_plus_response.get('gender', 'N/A')}")
+        else:
+            print("process_profile_data: PAN Plus data not available")
+
+        if pan_to_father_name_response:
+            print(f"process_profile_data: Father name data found: {pan_to_father_name_response.get('father_name', 'N/A')}")
+        else:
+            print("process_profile_data: Father name data not available")
 
         profile_data["personalInfo"] = {
             "fullName": pan_plus_response.get("full_name") if pan_plus_response else input_data["name"],
@@ -441,15 +532,27 @@ def process_profile_data(data):
             "category": pan_plus_response.get("category", "Not Available") if pan_plus_response else "Not Available",
             "aadhaarLinked": pan_plus_response.get("aadhaar_linked", False) if pan_plus_response else False,
         }
+        print(f"process_profile_data: personal info processed - fullName: {profile_data['personalInfo']['fullName']}")
 
-        # Contact Information
+        # Contact Information Processing
+        print("process_profile_data: processing contact information...")
         mobile_to_name_response = next((r for r in initial_responses if r["name"] == "Mobile to Name"), {}).get("response", {}).get("data")
         network_details_response = next((r for r in initial_responses if r["name"] == "Mobile Network Details"), {}).get("response", {}).get("data")
+
+        if mobile_to_name_response:
+            print(f"process_profile_data: mobile name data found: {mobile_to_name_response.get('name', 'N/A')}")
+        else:
+            print("process_profile_data: mobile name data not available")
+
+        if network_details_response:
+            print(f"process_profile_data: network details found - operator: {network_details_response.get('currentNetworkName', 'N/A')}")
+        else:
+            print("process_profile_data: network details not available")
 
         formatted_address = "Not Available"
         if pan_plus_response and pan_plus_response.get("address"):
             addr = pan_plus_response["address"]
-            formatted_address = ", ".join(filter(None, [
+            address_parts = filter(None, [
                 addr.get("line_1"),
                 addr.get("line_2"),
                 addr.get("street_name"),
@@ -457,7 +560,11 @@ def process_profile_data(data):
                 addr.get("state"),
                 addr.get("zip"),
                 addr.get("country"),
-            ]))
+            ])
+            formatted_address = ", ".join(address_parts)
+            print(f"process_profile_data: address formatted: {formatted_address}")
+        else:
+            print("process_profile_data: address data not available")
 
         profile_data["contactInfo"] = {
             "mobileNumber": input_data["mobile_number"],
@@ -470,15 +577,21 @@ def process_profile_data(data):
             "email": pan_plus_response.get("email", "Not Available") if pan_plus_response else "Not Available",
             "phoneNumber": pan_plus_response.get("phone_number", "Not Available") if pan_plus_response else "Not Available",
         }
+        print(f"process_profile_data: contact info processed - mobile: {profile_data['contactInfo']['mobileNumber']}")
 
-        # Employment Information
+        # Employment Information Processing
+        print("process_profile_data: processing employment information...")
         uan_response = next((r for r in initial_responses if r["name"] == "PAN to UAN"), {}).get("response", {}).get("data")
         employment_history_response = next((r for r in additional_responses if r["name"] == "UAN Employment History"), {}).get("response", {}).get("data")
 
         if uan_response and uan_response.get("uan_number"):
-            profile_data["employmentInfo"] = {
-                "uanNumber": uan_response["uan_number"],
-                "employmentHistory": [
+            print(f"process_profile_data: UAN found: {uan_response['uan_number']}")
+
+            employment_history = []
+            if employment_history_response:
+                history_data = employment_history_response.get("employment_history", [])
+                print(f"process_profile_data: employment history found with {len(history_data)} records")
+                employment_history = [
                     {
                         "companyName": job.get("establishment_name", "Not Available"),
                         "memberId": job.get("member_id", "Not Available"),
@@ -486,13 +599,33 @@ def process_profile_data(data):
                         "dateOfExit": job.get("date_of_exit", "Not Available"),
                         "lastPFSubmitted": job.get("last_pf_submitted", "Not Available"),
                     }
-                    for job in employment_history_response.get("employment_history", [])
-                ] if employment_history_response else [],
-            }
+                    for job in history_data
+                ]
+            else:
+                print("process_profile_data: employment history data not available")
 
-        # Credit Information
+            profile_data["employmentInfo"] = {
+                "uanNumber": uan_response["uan_number"],
+                "employmentHistory": employment_history,
+            }
+            print(f"process_profile_data: employment info processed with {len(employment_history)} history records")
+        else:
+            print("process_profile_data: UAN data not available")
+
+        # Credit Information Processing
+        print("process_profile_data: processing credit information...")
         credit_report_response = next((r for r in initial_responses if r["name"] == "Credit Report"), {}).get("response", {}).get("data")
         pan_kra_status_response = next((r for r in initial_responses if r["name"] == "PAN KRA Status"), {}).get("response", {}).get("data")
+
+        if credit_report_response:
+            print(f"process_profile_data: credit report found - score: {credit_report_response.get('credit_score', 'N/A')}")
+        else:
+            print("process_profile_data: credit report data not available")
+
+        if pan_kra_status_response:
+            print(f"process_profile_data: PAN KRA status found: {pan_kra_status_response.get('pan_kra_status', 'N/A')}")
+        else:
+            print("process_profile_data: PAN KRA status not available")
 
         profile_data["creditInfo"] = {
             "creditScore": credit_report_response.get("credit_score", "Not Available") if credit_report_response else "Not Available",
@@ -500,19 +633,32 @@ def process_profile_data(data):
             "panKRAStatus": pan_kra_status_response.get("pan_kra_status", "Not Available") if pan_kra_status_response else "Not Available",
             "panKRAAgency": pan_kra_status_response.get("pan_kra_agency", "Not Available") if pan_kra_status_response else "Not Available",
         }
+        print(f"process_profile_data: credit info processed - score: {profile_data['creditInfo']['creditScore']}")
 
-        # Business Information
+        # Business Information Processing
+        print("process_profile_data: processing business information...")
         pan_msme_check_response = next((r for r in additional_responses if r["name"] == "PAN MSME Check"), {}).get("response", {}).get("data")
 
         if pan_msme_check_response:
+            msme_status = "Registered" if pan_msme_check_response.get("udyam_exists") else "Not Registered"
+            print(f"process_profile_data: MSME check found - status: {msme_status}")
+
             profile_data["businessInfo"] = {
-                "msmeStatus": "Registered" if pan_msme_check_response.get("udyam_exists") else "Not Registered",
+                "msmeStatus": msme_status,
                 "panDetails": pan_msme_check_response.get("pan_details", {}),
             }
+            print("process_profile_data: business info processed")
+        else:
+            print("process_profile_data: MSME check data not available")
+
+        print(f"process_profile_data: profile processing completed successfully")
+        print(f"process_profile_data: final profile sections: {list(profile_data.keys())}")
 
     except Exception as error:
-        print(f"Error processing profile data: {error}")
+        print(f"process_profile_data: ERROR in profile processing: {error}")
+        print(f"process_profile_data: error details: {str(error)}")
         profile_data["processingError"] = "Some data processing failed"
+        print("process_profile_data: added processing error flag to profile")
 
     return profile_data
 

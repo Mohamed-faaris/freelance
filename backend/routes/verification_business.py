@@ -3,8 +3,10 @@ from fastapi.responses import JSONResponse
 import jwt
 import os
 import requests
+import asyncio
 from datetime import datetime
 from typing import Dict, Any
+from bson import ObjectId
 from config.db import userCollection, apiAnalyticsCollection
 from models.user import User
 from models.api_analytics import ApiAnalytics
@@ -13,10 +15,15 @@ router = APIRouter()
 
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
 BASE_URL = "https://production.deepvue.tech/v1"
+ENABLE_ANALYTICS_TRACKING = os.getenv("ENABLE_ANALYTICS_TRACKING", "true").lower() == "true"
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "https://auth.deepvue.tech")
+AUTH_SERVICE_CLIENT_ID = os.getenv("AUTH_SERVICE_CLIENT_ID")
+AUTH_SERVICE_CLIENT_SECRET = os.getenv("AUTH_SERVICE_CLIENT_SECRET")
 
 # API cost mapping
 API_COSTS: Dict[str, float] = {
     "verification/gstin-advanced": 5.0,
+    "default": 1.0,
 }
 
 # GST Advanced service configuration
@@ -40,6 +47,36 @@ def authenticate(request: Request):
     except:
         return None
 
+async def get_access_token():
+    """Get access token from auth service"""
+    try:
+        # Prepare the request to get access token
+        token_url = f"{AUTH_SERVICE_URL}/oauth/token"
+        payload = {
+            "grant_type": "client_credentials",
+            "client_id": AUTH_SERVICE_CLIENT_ID,
+            "client_secret": AUTH_SERVICE_CLIENT_SECRET,
+            "scope": "api"
+        }
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+
+        # Make the request synchronously in a thread
+        def _get_token():
+            response = requests.post(token_url, data=payload, headers=headers, timeout=10)
+            response.raise_for_status()
+            token_data = response.json()
+            return token_data.get("access_token")
+
+        access_token = await asyncio.to_thread(_get_token)
+        return access_token
+
+    except Exception as error:
+        print(f"Failed to get access token: {error}")
+        # Fallback to a cached token or raise error
+        raise HTTPException(status_code=500, detail="Failed to authenticate with external service")
+
 # Tracker function for external API calls
 async def track_external_api_call(
     user_id: str,
@@ -47,86 +84,82 @@ async def track_external_api_call(
     user_role: str,
     service: str,
     api_function,
-    *args
+    *args,
+    **kwargs
 ):
+    """Track external API calls with analytics"""
     start_time = datetime.now()
 
     try:
-        # Call the actual API function
-        result = await api_function(*args)
-        response_time = (datetime.now() - start_time).total_seconds() * 1000  # in milliseconds
+        result = await api_function(*args, **kwargs)
+        response_time = (datetime.now() - start_time).total_seconds() * 1000  # Convert to ms
+        cost = API_COSTS.get(service, API_COSTS["default"])
 
-        # Get cost for this service
-        cost = API_COSTS.get(service, 1.0)
-
-        # Log this individual API call
-        await ApiAnalytics.log_api_call({
-            "userId": user_id,
-            "username": username,
-            "userRole": user_role,
-            "service": service,
-            "endpoint": service,
-            "apiVersion": "v1",
-            "cost": cost,
-            "statusCode": 200,
-            "responseTime": response_time,
-            "profileType": "business",
-            "requestData": args[0] if args else None,
-            "responseData": result,
-            "businessId": None,
-        })
+        # Log successful API call if analytics tracking is enabled
+        if ENABLE_ANALYTICS_TRACKING:
+            await ApiAnalytics.log_api_call({
+                "userId": ObjectId(user_id),
+                "username": username,
+                "userRole": user_role,
+                "service": service,
+                "endpoint": service,
+                "apiVersion": "v1",
+                "cost": cost,
+                "statusCode": 200,
+                "responseTime": response_time,
+                "profileType": "business",
+                "requestData": args[0] if args else None,
+                "responseData": result,
+                "businessId": None,
+            })
 
         return result
     except Exception as error:
         response_time = (datetime.now() - start_time).total_seconds() * 1000
 
-        # Also log failed calls
-        await ApiAnalytics.log_api_call({
-            "userId": user_id,
-            "username": username,
-            "userRole": user_role,
-            "service": service,
-            "endpoint": service,
-            "apiVersion": "v1",
-            "cost": API_COSTS.get(service, 1.0),
-            "statusCode": 500,
-            "responseTime": response_time,
-            "profileType": "business",
-            "requestData": args[0] if args else None,
-            "responseData": {
-                "error": str(error),
-            },
-            "businessId": None,
-        })
+        # Log failed API call if analytics tracking is enabled
+        if ENABLE_ANALYTICS_TRACKING:
+            await ApiAnalytics.log_api_call({
+                "userId": ObjectId(user_id),
+                "username": username,
+                "userRole": user_role,
+                "service": service,
+                "endpoint": service,
+                "apiVersion": "v1",
+                "cost": API_COSTS.get(service, API_COSTS["default"]),
+                "statusCode": 500,
+                "responseTime": response_time,
+                "profileType": "business",
+                "requestData": args[0] if args else None,
+                "responseData": {"error": str(error)},
+                "businessId": None,
+            })
 
         raise error
 
 # GET endpoint to fetch GST Advanced service details
 @router.get("/gstin-advanced")
 async def get_gst_advanced_service(request: Request):
-    auth = await authenticate(request)
+    user = authenticate(request)
 
-    if not auth["authenticated"]:
-        raise HTTPException(status_code=401, detail=auth["error"])
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
     return JSONResponse(content={"service": GST_ADVANCED_SERVICE})
 
 # POST endpoint for GST Advanced service access
 @router.post("/gstin-advanced")
 async def post_gst_advanced_service(request: Request, data: Dict[str, Any]):
-    auth = await authenticate(request)
+    user = authenticate(request)
 
-    if not auth["authenticated"]:
-        raise HTTPException(status_code=401, detail=auth["error"])
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
     try:
         # Get user details
-        if not auth.get("user"):
-            raise HTTPException(status_code=401, detail="Authentication failed")
-
-        user_id = auth["user"]["id"]
-        user = await userCollection.find_one({"_id": user_id})
-        if not user:
+        user_id = user["id"]
+        user_doc = await userCollection.find_one({"_id": user_id})
+        if not user_doc:
             raise HTTPException(status_code=401, detail="User not found")
 
         service = data.get("service")
@@ -138,9 +171,9 @@ async def post_gst_advanced_service(request: Request, data: Dict[str, Any]):
         if service == "gstin-advanced":
             response = await fetch_gstin_advanced(
                 gstin,
-                str(user["_id"]),
-                user.get("username", ""),
-                user.get("role", "")
+                str(user_doc["_id"]),
+                user_doc.get("username", ""),
+                user_doc.get("role", "")
             )
             return JSONResponse(content=response)
         else:
@@ -167,9 +200,7 @@ async def fetch_gstin_advanced(
     )
 
 async def _verify_gstin_advanced(gstin_num: str):
-    # Assuming authService.getAccessToken() is implemented elsewhere
-    # For now, using a placeholder
-    access_token = os.getenv("ACCESS_TOKEN", "placeholder_token")
+    access_token = await get_access_token()
 
     url = f"{BASE_URL}/verification/gstin-advanced?gstin_number={gstin_num}"
     headers = {

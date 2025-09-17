@@ -3,7 +3,7 @@ from .user.index import userRoute
 from .auth import authRouter
 from .news import newsRoute
 from .states import statesRoute
-from .court_cases import courtCasesRouter
+from .court_cases import router as businessVerificationRouter
 from .search import searchRouter
 from .analytics import analyticsRouter
 from .verification_advanced import verificationRouter
@@ -31,8 +31,8 @@ mainRouter.include_router(newsRoute, prefix="/news", tags=["news"])
 # Include states routes
 mainRouter.include_router(statesRoute, prefix="/states", tags=["states"])
 
-# Include court cases routes
-mainRouter.include_router(courtCasesRouter, prefix="/court-cases", tags=["court-cases"])
+# Include business verification routes
+mainRouter.include_router(businessVerificationRouter, prefix="/business-verification", tags=["business-verification"])
 
 # Include search routes
 mainRouter.include_router(searchRouter, prefix="/search", tags=["search"])

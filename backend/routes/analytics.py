@@ -72,7 +72,7 @@ async def get_analytics(
         filter_["profileType"] = profileType
 
     # Aggregations
-    total_usage = list(apiAnalyticsCollection.aggregate([
+    total_usage = await apiAnalyticsCollection.aggregate([
         {"$match": filter_},
         {
             "$group": {
@@ -82,9 +82,9 @@ async def get_analytics(
                 "avgResponseTime": {"$avg": "$responseTime"},
             },
         },
-    ]))
+    ]).to_list(length=None)
 
-    daily_usage = list(apiAnalyticsCollection.aggregate([
+    daily_usage = await apiAnalyticsCollection.aggregate([
         {"$match": filter_},
         {
             "$group": {
@@ -94,9 +94,9 @@ async def get_analytics(
             },
         },
         {"$sort": {"_id": 1}},
-    ]))
+    ]).to_list(length=None)
 
-    service_breakdown = list(apiAnalyticsCollection.aggregate([
+    service_breakdown = await apiAnalyticsCollection.aggregate([
         {"$match": filter_},
         {
             "$group": {
@@ -106,9 +106,9 @@ async def get_analytics(
             },
         },
         {"$sort": {"calls": -1}},
-    ]))
+    ]).to_list(length=None)
 
-    user_usage = list(apiAnalyticsCollection.aggregate([
+    user_usage = await apiAnalyticsCollection.aggregate([
         {"$match": filter_},
         {
             "$group": {
@@ -119,9 +119,9 @@ async def get_analytics(
         },
         {"$sort": {"cost": -1}},
         {"$limit": 10},
-    ]))
+    ]).to_list(length=None)
 
-    profile_type_counts = list(apiAnalyticsCollection.aggregate([
+    profile_type_counts = await apiAnalyticsCollection.aggregate([
         {"$match": {**filter_, "profileType": {"$ne": None}}},
         {
             "$group": {
@@ -130,9 +130,9 @@ async def get_analytics(
                 "cost": {"$sum": "$cost"},
             },
         },
-    ]))
+    ]).to_list(length=None)
 
-    top_endpoints = list(apiAnalyticsCollection.aggregate([
+    top_endpoints = await apiAnalyticsCollection.aggregate([
         {"$match": filter_},
         {
             "$group": {
@@ -144,7 +144,7 @@ async def get_analytics(
         },
         {"$sort": {"calls": -1}},
         {"$limit": 15},
-    ]))
+    ]).to_list(length=None)
 
     # Convert ObjectId to str for serialization
     for item in user_usage:

@@ -17,7 +17,7 @@ async def get_permissions(
     try:
         # If a specific user is requested, return their permissions
         if userId:
-            user = userCollection.find_one({"_id": ObjectId(userId)})
+            user = await userCollection.find_one({"_id": ObjectId(userId)})
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             return PermissionResponse(permissions=user.get("permissions", []))
@@ -31,7 +31,7 @@ async def get_permissions(
             query["permissions.resource"] = resource
 
         # Get users matching the query
-        users = list(userCollection.find(query))
+        users = await userCollection.find(query).to_list(length=None)
 
         # Extract and flatten permissions
         all_permissions = []
@@ -67,7 +67,7 @@ async def update_permissions(request: UpdatePermissionsRequest):
             "updatedAt": datetime.now(timezone.utc)
         }
 
-        updated_user = userCollection.find_one_and_update(
+        updated_user = await userCollection.find_one_and_update(
             {"_id": ObjectId(request.userId)},
             {"$set": update_data},
             return_document=True

@@ -249,6 +249,8 @@ export default function UserManagement() {
       setSelectedAdminUser((prev) =>
         prev ? { ...prev, permissions: updatedPermissions } : null
       );
+
+      
     } catch (error) {
       console.error("Error updating permissions:", error);
       setError("An error occurred while updating permissions.");

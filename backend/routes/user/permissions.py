@@ -23,6 +23,7 @@ async def get_permissions(
             return PermissionResponse(permissions=user.get("permissions", []))
 
         # Fallback to role-based permissions if no user specified
+        print("fallback to role-based permissions")
         query = {}
         if role:
             query["role"] = role
@@ -58,6 +59,8 @@ async def update_permissions(request: UpdatePermissionsRequest):
         if not request.userId or not request.permissions or not request.updatedBy:
             raise HTTPException(status_code=400, detail="Missing required fields")
 
+
+        
         # Update user permissions
         update_data = {
             "permissions": request.permissions,

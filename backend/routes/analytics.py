@@ -228,9 +228,12 @@ async def get_analytics_logs(
         skip = (page - 1) * limit
         logs_cursor = apiAnalyticsCollection.find(filter_).sort("createdAt", -1).skip(skip).limit(limit)
         
+        # Convert cursor to list
+        logs_list = await logs_cursor.to_list(length=None)
+        
         # Get logs
         logs = []
-        for log in logs_cursor:
+        for log in logs_list:
             logs.append({
                 "timestamp": log["createdAt"],
                 "userId": str(log["userId"]),

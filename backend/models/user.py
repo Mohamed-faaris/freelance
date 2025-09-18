@@ -13,8 +13,8 @@ class User(BaseModel):
     password: str = Field(..., min_length=8)
     role: Literal["admin", "superadmin", "user"] = "user"
     permissions: List[UserPermission] = Field(default_factory=lambda: [UserPermission(resource="news", actions=["view"])])
-    createdAt: datetime = Field(exclude=True)
-    updatedAt: datetime = Field(exclude=True)
+    createdAt: Optional[datetime] = None
+    updatedAt: Optional[datetime] = None
 
     model_config = ConfigDict(
         from_attributes=True
@@ -23,17 +23,13 @@ class User(BaseModel):
     @field_validator('username')
     @classmethod
     def username_must_be_unique(cls, v):
-        from config.db import userCollection
-        if userCollection.find_one({"username": v}):
-            raise ValueError('Username already exists')
+        # Remove database check from validator - will be handled in endpoint
         return v
 
     @field_validator('email')
     @classmethod
     def email_must_be_unique(cls, v):
-        from config.db import userCollection
-        if userCollection.find_one({"email": v}):
-            raise ValueError('Email already exists')
+        # Remove database check from validator - will be handled in endpoint
         return v
 
     @staticmethod

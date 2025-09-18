@@ -193,7 +193,7 @@ export default function Dashboard() {
       requiredPermission: { resource: "fssai-verification" },
     },
 
-    ...(user?.role === "superadmin"
+    ...(user?.role === "superadmin" || user?.role === "admin"
       ? [
           {
             id: "admin-section",
@@ -231,7 +231,7 @@ export default function Dashboard() {
   // Check if tab is allowed based on user permissions
   const isTabAllowed = (item: NavItem): boolean => {
     // Superadmin can access everything
-    if (user?.role === "superadmin") 
+    if (user?.role === "superadmin" || user?.role === "admin") 
       return true;
 
     // If no permission requirement, it's publicly accessible

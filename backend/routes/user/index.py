@@ -43,7 +43,7 @@ async def create_user(user: User):
         user_dict["updatedAt"] = now
         result = await userCollection.insert_one(user_dict)
         created_user = await userCollection.find_one({"_id": result.inserted_id})
-        return serializeDict(created_user)
+        return {"user": serializeDict(created_user)}
     except HTTPException:
         raise
     except Exception as e:
@@ -57,7 +57,7 @@ async def update_user(id, user: User):
     user_dict["updatedAt"] = datetime.now(timezone.utc)
     await userCollection.find_one_and_update({"_id": ObjectId(id)}, {"$set": user_dict})
     updated_user = await userCollection.find_one({"_id": ObjectId(id)})
-    return serializeDict(updated_user)
+    return {"user": serializeDict(updated_user)}
 
 
 @userRoute.delete("/{id}")

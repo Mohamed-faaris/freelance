@@ -6,7 +6,7 @@ interface User {
   id: string;
   username: string;
   email: string;
-  role?: "admin" | "superadmin"; // Added role field
+  role?: "admin" | "superadmin" | "user"; // Added role field
 }
 
 interface AuthContextType {
@@ -29,8 +29,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-
-  
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -65,7 +63,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, []);
 
- 
   // Modify the login function
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -143,7 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         login,
-        logout, 
+        logout,
       }}
     >
       {children}

@@ -36,7 +36,7 @@ type User = {
   _id: string;
   username: string;
   email: string;
-  role: "admin" | "superadmin";
+  role: "admin" | "superadmin" | "user";
   createdAt: string;
   permissions: { resource: string; actions: string[] }[];
 };
@@ -84,7 +84,7 @@ export default function UserManagement() {
     itemsPerPage: 10,
     sortField: "createdAt",
     sortDirection: "desc" as "asc" | "desc",
-    filterRole: "all" as "all" | "admin" | "superadmin",
+    filterRole: "all" as "all" | "admin" | "superadmin" | "user",
   });
 
   // Tabs configuration
@@ -334,7 +334,7 @@ export default function UserManagement() {
   };
 
   // Function to handle role filtering
-  const handleRoleFilter = (role: "all" | "admin" | "superadmin") => {
+  const handleRoleFilter = (role: "all" | "admin" | "superadmin" | "user") => {
     setTableState((prev) => ({
       ...prev,
       filterRole: role,
@@ -558,7 +558,7 @@ export default function UserManagement() {
               darkMode ? "text-gray-400" : "text-gray-500"
             }`}
           >
-            Manage your admin and superadmin users
+            Manage your admin, superadmin, and user accounts
           </p>
         </div>
         {activeTab === "users" && (
@@ -730,6 +730,18 @@ export default function UserManagement() {
                 }`}
               >
                 Superadmin
+              </button>
+              <button
+                onClick={() => handleRoleFilter("user")}
+                className={`px-3 py-2 transition-colors ${
+                  tableState.filterRole === "user"
+                    ? darkMode
+                      ? "bg-blue-700 text-white"
+                      : "bg-blue-600 text-white"
+                    : ""
+                }`}
+              >
+                User
               </button>
             </div>
 
@@ -979,7 +991,7 @@ export default function UserManagement() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-3">
                           {/* Access Control button only for admin users when user is superadmin */}
-                          {user.role === "admin" && hasRole("superadmin") && (
+                          {user.role !== "superadmin" && hasRole("superadmin") && (
                             <button
                               onClick={() => openAccessControlModal(user)}
                               className={`p-2 rounded-full ${
@@ -1662,7 +1674,10 @@ export default function UserManagement() {
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
-                                role: e.target.value as "admin" | "superadmin",
+                                role: e.target.value as
+                                  | "admin"
+                                  | "superadmin"
+                                  | "user",
                               })
                             }
                             className={`pl-10 border block w-full rounded-md shadow-sm sm:text-sm px-4 py-2.5 appearance-none ${
@@ -1673,6 +1688,7 @@ export default function UserManagement() {
                           >
                             <option value="admin">Admin</option>
                             <option value="superadmin">Super Admin</option>
+                            <option value="user">User</option>
                           </select>
                         </div>
                       </div>
@@ -1899,7 +1915,10 @@ export default function UserManagement() {
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
-                                role: e.target.value as "admin" | "superadmin",
+                                role: e.target.value as
+                                  | "admin"
+                                  | "superadmin"
+                                  | "user",
                               })
                             }
                             className={`pl-10 border block w-full rounded-md shadow-sm sm:text-sm px-4 py-2.5 appearance-none ${
@@ -1910,6 +1929,7 @@ export default function UserManagement() {
                           >
                             <option value="admin">Admin</option>
                             <option value="superadmin">Super Admin</option>
+                            <option value="user">User</option>
                           </select>
                         </div>
                       </div>

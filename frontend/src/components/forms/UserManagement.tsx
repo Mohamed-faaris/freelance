@@ -249,8 +249,6 @@ export default function UserManagement() {
       setSelectedAdminUser((prev) =>
         prev ? { ...prev, permissions: updatedPermissions } : null
       );
-
-      
     } catch (error) {
       console.error("Error updating permissions:", error);
       setError("An error occurred while updating permissions.");
@@ -993,19 +991,20 @@ export default function UserManagement() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-3">
                           {/* Access Control button only for admin users when user is superadmin */}
-                          {user.role !== "superadmin" && hasRole("superadmin") && (
-                            <button
-                              onClick={() => openAccessControlModal(user)}
-                              className={`p-2 rounded-full ${
-                                darkMode
-                                  ? "hover:bg-gray-700 text-indigo-300"
-                                  : "hover:bg-indigo-100 text-indigo-600"
-                              } transition-colors duration-200`}
-                              title="Access Control"
-                            >
-                              <KeyRound size={16} />
-                            </button>
-                          )}
+                          {user.role !== "superadmin" &&
+                            hasRole("superadmin") && (
+                              <button
+                                onClick={() => openAccessControlModal(user)}
+                                className={`p-2 rounded-full ${
+                                  darkMode
+                                    ? "hover:bg-gray-700 text-indigo-300"
+                                    : "hover:bg-indigo-100 text-indigo-600"
+                                } transition-colors duration-200`}
+                                title="Access Control"
+                              >
+                                <KeyRound size={16} />
+                              </button>
+                            )}
                           <button
                             onClick={() => openEditModal(user)}
                             className={`p-2 rounded-full ${
@@ -1321,12 +1320,12 @@ export default function UserManagement() {
                 <div className="sm:flex sm:items-start mb-6">
                   <div
                     className={`mx-auto flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full sm:mx-0 sm:h-12 sm:w-12 ${
-                      darkMode ? "bg-indigo-900" : "bg-indigo-100"
+                      darkMode ? "bg-blue-900" : "bg-blue-100"
                     }`}
                   >
                     <KeyRound
                       className={`h-7 w-7 ${
-                        darkMode ? "text-indigo-200" : "text-indigo-600"
+                        darkMode ? "text-blue-200" : "text-blue-600"
                       }`}
                     />
                   </div>
@@ -1390,8 +1389,8 @@ export default function UserManagement() {
                               type="checkbox"
                               className={`form-checkbox h-5 w-5 ${
                                 darkMode
-                                  ? "text-indigo-500 border-gray-600 bg-gray-700 focus:ring-indigo-600 focus:ring-opacity-25"
-                                  : "text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-opacity-25"
+                                  ? "text-blue-500 border-gray-600 bg-gray-700 focus:ring-blue-600 focus:ring-opacity-25"
+                                  : "text-blue-600 border-gray-300 focus:ring-blue-500 focus:ring-opacity-25"
                               } rounded`}
                               checked={
                                 selectedAdminUser.permissions
@@ -1436,8 +1435,8 @@ export default function UserManagement() {
                       disabled={isSavingPermissions}
                       className={`px-6 py-2 rounded-md ${
                         darkMode
-                          ? "bg-indigo-700 hover:bg-indigo-600 text-white"
-                          : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                          ? "bg-blue-700 hover:bg-blue-600 text-white"
+                          : "bg-blue-600 hover:bg-blue-700 text-white"
                       } transition-colors flex items-center justify-center space-x-2`}
                     >
                       {isSavingPermissions ? (

@@ -18,7 +18,9 @@ from .auth import (
 from .api_tracking import (
     track_external_api_call,
     get_api_cost,
-    is_analytics_enabled
+    is_analytics_enabled,
+    _get_profile_type_from_service,
+    _format_request_data
 )
 
 from .gstin_verification import (
@@ -53,6 +55,8 @@ __all__ = [
     "track_external_api_call",
     "get_api_cost",
     "is_analytics_enabled",
+    "_get_profile_type_from_service",
+    "_format_request_data",
 
     # GSTIN verification
     "verify_gstin_advanced",

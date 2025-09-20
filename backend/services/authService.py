@@ -45,6 +45,9 @@ class AuthService:
 
             response.raise_for_status()  # Raise an exception for bad status codes
 
+            print("Authorization response received:", response.status_code)
+            print("Response content:", response.text)
+            
             # Extract token and expiry information
             response_data = response.json()
             access_token = response_data.get("access_token")

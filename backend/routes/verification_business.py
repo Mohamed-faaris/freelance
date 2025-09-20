@@ -54,7 +54,7 @@ async def get_access_token():
         raise HTTPException(status_code=500, detail="Failed to authenticate with external service")
 
 # GET endpoint to fetch GST Advanced service details
-@router.get("/gstin-advanced", response_model=ServiceResponse)
+@router.get("/verification-business", response_model=ServiceResponse)
 async def get_gst_advanced_service(request: Request):
     # Get authenticated user using utility function
     await get_authenticated_user(request)
@@ -62,7 +62,7 @@ async def get_gst_advanced_service(request: Request):
     return ServiceResponse(service=GST_ADVANCED_SERVICE)
 
 # POST endpoint for GST Advanced service access
-@router.post("/gstin-advanced", response_model=VerificationResponse)
+@router.post("/verification-business", response_model=VerificationResponse)
 async def post_gst_advanced_service(request: Request, data: GSTINAdvancedRequest):
     # Get authenticated user using utility function
     user_doc = await get_authenticated_user(request)

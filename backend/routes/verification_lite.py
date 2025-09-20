@@ -204,99 +204,119 @@ async def verification_lite(request: Request, data: VerificationLiteRequest):
         user = User.model_construct(**user_doc)
         print(f"Authenticated user: {user.username} (Role: {user.role})")
 
-        # Define initial API calls for lite verification
-        initial_api_calls = [
+        # Define API calls with priorities for lite version
+        priority_api_calls = [
             {
                 "name": "PAN Plus",
                 "call": lambda: fetch_pan_plus(data.pan_number, str(user_doc["_id"]), user.username, user.role),
                 "endpoint": "verification/pan-plus",
+                "priority": "HIGH",
             },
             {
                 "name": "Mobile to Name",
                 "call": lambda: fetch_mobile_to_name(data.mobile_number, str(user_doc["_id"]), user.username, user.role),
                 "endpoint": "mobile-intelligence/mobile-to-name",
-            },
-            {
-                "name": "Mobile Network Details",
-                "call": lambda: fetch_mobile_network_details(data.mobile_number, str(user_doc["_id"]), user.username, user.role),
-                "endpoint": "mobile-intelligence/mobile-to-network-details",
-            },
-            {
-                "name": "Mobile to Digital Age",
-                "call": lambda: fetch_mobile_to_digital_age(data.mobile_number, str(user_doc["_id"]), user.username, user.role),
-                "endpoint": "mobile-intelligence/mobile-to-digital-age",
-            },
-            {
-                "name": "Mobile to Multiple UPI",
-                "call": lambda: fetch_mobile_to_multiple_upi(data.mobile_number, str(user_doc["_id"]), user.username, user.role),
-                "endpoint": "mobile-intelligence/mobile-to-multiple-upi",
+                "priority": "HIGH",
             },
             {
                 "name": "PAN to UAN",
                 "call": lambda: fetch_pan_to_uan(data.pan_number, str(user_doc["_id"]), user.username, user.role),
                 "endpoint": "verification/epfo/pan-to-uan",
+                "priority": "HIGH",
             },
+        ]
+
+        secondary_api_calls = [
             {
-                "name": "PAN KRA Status",
-                "call": lambda: fetch_pan_kra_status(data.pan_number, str(user_doc["_id"]), user.username, user.role),
-                "endpoint": "verification/pan-kra-status",
+                "name": "Mobile Network Details",
+                "call": lambda: fetch_mobile_network_details(data.mobile_number, str(user_doc["_id"]), user.username, user.role),
+                "endpoint": "mobile-intelligence/mobile-to-network-details",
+                "priority": "MEDIUM",
             },
             {
                 "name": "PAN to Father Name",
                 "call": lambda: fetch_pan_to_father_name(data.pan_number, str(user_doc["_id"]), user.username, user.role),
                 "endpoint": "verification/pan-to-fathername",
+                "priority": "MEDIUM",
+            },
+            {
+                "name": "PAN KRA Status",
+                "call": lambda: fetch_pan_kra_status(data.pan_number, str(user_doc["_id"]), user.username, user.role),
+                "endpoint": "verification/pan-kra-status",
+                "priority": "MEDIUM",
             },
         ]
 
-        # Execute initial API calls
-        print("Executing initial API calls for lite verification...")
-        initial_results = await asyncio.gather(
-            *[api["call"]() for api in initial_api_calls],
+        additional_api_calls = [
+            {
+                "name": "Mobile to Digital Age",
+                "call": lambda: fetch_mobile_to_digital_age(data.mobile_number, str(user_doc["_id"]), user.username, user.role),
+                "endpoint": "mobile-intelligence/mobile-to-digital-age",
+                "priority": "LOW",
+            },
+            {
+                "name": "Mobile to Multiple UPI",
+                "call": lambda: fetch_mobile_to_multiple_upi(data.mobile_number, str(user_doc["_id"]), user.username, user.role),
+                "endpoint": "mobile-intelligence/mobile-to-multiple-upi",
+                "priority": "LOW",
+            },
+        ]
+
+        # Execute priority APIs
+        print("Executing priority API calls for lite verification...")
+        priority_results = await asyncio.gather(
+            *[api["call"]() for api in priority_api_calls],
             return_exceptions=True
         )
 
-        initial_responses = []
-        for i, result in enumerate(initial_results):
-            api = initial_api_calls[i]
+        priority_responses = []
+        for i, result in enumerate(priority_results):
+            api = priority_api_calls[i]
             if isinstance(result, Exception):
-                initial_responses.append({
+                priority_responses.append({
                     "name": api["name"],
                     "endpoint": api["endpoint"],
                     "error": str(result)
                 })
             else:
-                initial_responses.append({
+                priority_responses.append({
                     "name": api["name"],
                     "endpoint": api["endpoint"],
                     "response": result
                 })
 
-        # Prepare additional API calls based on initial responses
-        additional_api_calls = []
+        # Check remaining time for secondary calls
+        remaining_time = PRODUCTION_LIMITS["TOTAL_TIMEOUT"] - (datetime.now() - start_time).total_seconds() * 1000
 
-        # Extract UAN for employment history
-        uan_response = next((r for r in initial_responses if r["name"] == "PAN to UAN"), {})
-        uan_number = uan_response.get("response", {}).get("data", {}).get("uan_number")
+        secondary_responses = []
+        if remaining_time > 10000:  # At least 10 seconds remaining for lite version
+            print("Executing secondary API calls for lite verification...")
+            secondary_results = await asyncio.gather(
+                *[api["call"]() for api in secondary_api_calls],
+                return_exceptions=True
+            )
 
-        # Add UAN Employment History if UAN is found
-        if uan_number:
-            additional_api_calls.append({
-                "name": "UAN Employment History",
-                "call": lambda: fetch_uan_employment_history(uan_number, str(user_doc["_id"]), user.username, user.role),
-                "endpoint": "verification/epfo/uan-to-employment-history",
-            })
+            for i, result in enumerate(secondary_results):
+                api = secondary_api_calls[i]
+                if isinstance(result, Exception):
+                    secondary_responses.append({
+                        "name": api["name"],
+                        "endpoint": api["endpoint"],
+                        "error": str(result)
+                    })
+                else:
+                    secondary_responses.append({
+                        "name": api["name"],
+                        "endpoint": api["endpoint"],
+                        "response": result
+                    })
 
-        # Add PAN MSME Check
-        additional_api_calls.append({
-            "name": "PAN MSME Check",
-            "call": lambda: fetch_pan_msme_check(data.pan_number, str(user_doc["_id"]), user.username, user.role),
-            "endpoint": "verification/pan-msme-check",
-        })
+        # Check time for additional calls
+        remaining_time2 = PRODUCTION_LIMITS["TOTAL_TIMEOUT"] - (datetime.now() - start_time).total_seconds() * 1000
 
-        # Execute additional API calls
         additional_responses = []
-        if additional_api_calls:
-            print("Executing additional API calls...")
+        if remaining_time2 > 8000:  # At least 8 seconds remaining
+            print("Executing additional API calls for lite verification...")
             additional_results = await asyncio.gather(
                 *[api["call"]() for api in additional_api_calls],
                 return_exceptions=True
@@ -317,6 +337,55 @@ async def verification_lite(request: Request, data: VerificationLiteRequest):
                         "response": result
                     })
 
+        # Combine all responses
+        all_responses = priority_responses + secondary_responses + additional_responses
+
+        # Process conditional additional API calls if time permits
+        conditional_api_calls = []
+        remaining_time3 = PRODUCTION_LIMITS["TOTAL_TIMEOUT"] - (datetime.now() - start_time).total_seconds() * 1000
+
+        if remaining_time3 > 6000:
+            # Extract UAN for employment history
+            uan_response = next((r for r in all_responses if r["name"] == "PAN to UAN"), None)
+            uan_number = uan_response.get("response", {}).get("data", {}).get("uan_number") if uan_response else None
+
+            if uan_number:
+                conditional_api_calls.append({
+                    "name": "UAN Employment History",
+                    "call": lambda: fetch_uan_employment_history(uan_number, str(user_doc["_id"]), user.username, user.role),
+                    "endpoint": "verification/epfo/uan-to-employment-history",
+                })
+
+            # Add PAN MSME Check
+            conditional_api_calls.append({
+                "name": "PAN MSME Check",
+                "call": lambda: fetch_pan_msme_check(data.pan_number, str(user_doc["_id"]), user.username, user.role),
+                "endpoint": "verification/pan-msme-check",
+            })
+
+        # Execute conditional calls
+        conditional_responses = []
+        if conditional_api_calls and remaining_time3 > 4000:
+            conditional_results = await asyncio.gather(
+                *[api["call"]() for api in conditional_api_calls],
+                return_exceptions=True
+            )
+
+            for i, result in enumerate(conditional_results):
+                api = conditional_api_calls[i]
+                if isinstance(result, Exception):
+                    conditional_responses.append({
+                        "name": api["name"],
+                        "endpoint": api["endpoint"],
+                        "error": str(result)
+                    })
+                else:
+                    conditional_responses.append({
+                        "name": api["name"],
+                        "endpoint": api["endpoint"],
+                        "response": result
+                    })
+
         # Process comprehensive profile
         comprehensive_profile = process_lite_profile_data({
             "input": {
@@ -325,22 +394,25 @@ async def verification_lite(request: Request, data: VerificationLiteRequest):
                 "aadhaar_number": data.aadhaar_number,
                 "pan_number": data.pan_number
             },
-            "initial_responses": initial_responses,
-            "additional_responses": additional_responses,
+            "initial_responses": all_responses,
+            "additional_responses": conditional_responses,
         })
 
         processing_time = (datetime.now() - start_time).total_seconds() * 1000
 
-        # Add metadata
-        comprehensive_profile["metadata"] = {
-            "profileType": "lite",
-            "totalApisCalled": len(initial_responses) + len(additional_responses),
+        # Add processing metadata
+        comprehensive_profile["processingInfo"] = {
             "processingTimeMs": processing_time,
-            "generatedAt": datetime.now().isoformat(),
+            "priorityApisCalled": len(priority_responses),
+            "secondaryApisCalled": len(secondary_responses),
+            "additionalApisCalled": len(additional_responses),
+            "conditionalApisCalled": len(conditional_responses),
+            "totalApisCalled": len(all_responses) + len(conditional_responses),
             "productionOptimized": True,
+            "timeoutsPrevented": True,
         }
 
-        print(f"Lite profile generation completed in {processing_time}ms with {len(initial_responses) + len(additional_responses)} API calls")
+        print(f"Lite profile generation completed in {processing_time}ms with {len(all_responses) + len(conditional_responses)} API calls")
 
         return comprehensive_profile
 

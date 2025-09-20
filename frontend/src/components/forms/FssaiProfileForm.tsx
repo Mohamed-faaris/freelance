@@ -38,6 +38,8 @@ import {
 import { useTheme } from "../../context/ThemeContext";
 import CourtCaseTab from "./CourtCaseTab";
 
+const API_URL = import.meta.env.VITE_API_URL 
+
 interface GSTBasicData {
   stjCd: string;
   lgnm: string;
@@ -851,7 +853,7 @@ export default function FSSAIProfilePage() {
         }
       }
 
-      const response = await fetch("/api/send-fssai-email", {
+      const response = await fetch(`${API_URL}/send-fssai-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1729,7 +1731,7 @@ export default function FSSAIProfilePage() {
 
       console.log("Sending request:", requestBody);
 
-      const response = await fetch("/api/fssai-verification", {
+      const response = await fetch(`${API_URL}/fssai-verification`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -2421,7 +2421,7 @@ export default function BusinessProfilePage() {
       setCompanyData(null);
 
       try {
-        const response = await fetch(`${API_URL}}/verification-business`, {
+        const response = await fetch(`${API_URL}/verification-business`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -2432,6 +2432,7 @@ export default function BusinessProfilePage() {
             pan,
             mobile,
           }),
+          credentials: "include",
         });
 
         if (!response.ok) {

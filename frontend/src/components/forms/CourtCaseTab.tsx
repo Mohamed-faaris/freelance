@@ -239,7 +239,7 @@ const CourtCaseResult: FC<CourtCaseResultProps> = ({ profileData }) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({"profile":payload.profileData}),
         credentials: "include",
       });
 

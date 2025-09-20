@@ -240,6 +240,7 @@ const CourtCaseResult: FC<CourtCaseResultProps> = ({ profileData }) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
+        credentials: "include",
       });
 
       if (!response.ok) {

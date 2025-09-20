@@ -2439,8 +2439,11 @@ export default function BusinessProfilePage() {
           throw new Error("Failed to fetch Business Verification data");
         }
 
-        const data = await response.json();
-        setBusinessData(data.data);
+        const res = await response.json();
+        console.log("Full response:", res);
+        console.log("Response data:", res.data);
+        console.log("Business Verification data:", res.data.data);
+        setBusinessData(res.data.data);
       } catch (error) {
         console.error("Error fetching Business Verification data:", error);
       } finally {

@@ -233,9 +233,10 @@ class ProfileUtils:
         if not name:
             return {"valid": False, "error": "No name found in profile data"}
 
-        birth_year = ProfileUtils.extract_birth_year(profile)
-        if not birth_year:
-            return {"valid": False, "error": "No valid date of birth found in profile data"}
+        # Birth year is now optional - analysis will work without it
+        # birth_year = ProfileUtils.extract_birth_year(profile)
+        # if not birth_year:
+        #     return {"valid": False, "error": "No valid date of birth found in profile data"}
 
         return {"valid": True}
 
@@ -321,14 +322,17 @@ class FileStorageService:
         name = ProfileUtils.extract_name(profile)
         birth_year = ProfileUtils.extract_birth_year(profile)
 
-        if not name or not birth_year:
-            raise ValueError("Cannot generate filename: missing name or birth year")
+        if not name:
+            raise ValueError("Cannot generate filename: missing name")
+
+        # Use birth year if available, otherwise use placeholder
+        year_part = str(birth_year) if birth_year else "unknown"
 
         normalized_name = re.sub(r'[^a-z0-9]', '_', name.lower())
         normalized_name = re.sub(r'_+', '_', normalized_name).strip('_')
 
         timestamp = datetime.now().strftime('%Y-%m-%d')
-        return f"{normalized_name}_{birth_year}_{timestamp}.json"
+        return f"{normalized_name}_{year_part}_{timestamp}.json"
 
     @staticmethod
     async def save_case_data(
@@ -400,16 +404,19 @@ class FileStorageService:
             name = ProfileUtils.extract_name(profile)
             birth_year = ProfileUtils.extract_birth_year(profile)
 
-            if not name or not birth_year:
+            if not name:
                 return None
 
             normalized_name = re.sub(r'[^a-z0-9]', '_', name.lower())
             normalized_name = re.sub(r'_+', '_', normalized_name).strip('_')
 
+            # Use birth year if available, otherwise use placeholder
+            year_part = str(birth_year) if birth_year else "unknown"
+
             # Look for files matching the user profile
             matching_files = [
                 f.name for f in files
-                if f.name.startswith(f"{normalized_name}_{birth_year}_") and f.name.endswith('.json')
+                if f.name.startswith(f"{normalized_name}_{year_part}_") and f.name.endswith('.json')
             ]
 
             if not matching_files:

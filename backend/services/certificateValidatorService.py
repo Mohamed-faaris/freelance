@@ -18,7 +18,7 @@ SCRIPT_DIR = Path(__file__).parent
 
 # 0. One-time Tesseract path (Windows only)
 # Uncomment and set this if you are on Windows and Tesseract is not in your PATH
-# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # --------------------------------------------------
 

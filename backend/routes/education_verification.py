@@ -13,7 +13,7 @@ except ImportError:
 
 router = APIRouter()
 
-@router.post("/education-verification")
+@router.post("/verify-education")
 async def education_verification(file: UploadFile = File(...)):
     """
     Validate an education certificate by uploading an image file.

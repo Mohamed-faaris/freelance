@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { UploadCloud } from "lucide-react";
+const API_URL = import.meta.env.VITE_API_URL ;
 
 function EducationVerification() {
   const { darkMode } = useTheme();
@@ -35,7 +36,7 @@ function EducationVerification() {
     formData.append("file", file); // 'file' must match the parameter name in your FastAPI endpoint
 
     try {
-      const response = await fetch("http://localhost:8000/verify-education/", {
+      const response = await fetch(`${API_URL}/verify-education/`, {
         method: "POST",
         body: formData,
         // FastAPI handles content-type for FormData automatically

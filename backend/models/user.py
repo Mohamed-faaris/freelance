@@ -38,4 +38,15 @@ class User(BaseModel):
 
     def verify_password(self, password: str) -> bool:
         return bcrypt.checkpw(password.encode('utf-8'), self.password.encode('utf-8'))
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = Field(None, min_length=1, strip_whitespace=True)
+    email: Optional[EmailStr] = None
+    password: Optional[str] = Field(None, min_length=8)
+    role: Optional[Literal["admin", "superadmin", "user"]] = None
+    permissions: Optional[List[UserPermission]] = None
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )
         

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from models.user import User
+from models.user import User, UserUpdate
 from config.db import conn
 from schemas.user import serializeDict, serializeList
 from bson import ObjectId
@@ -50,10 +50,35 @@ async def create_user(user: User):
 
 
 @userRoute.put("/{id}")
-async def update_user(id, user: User):
-    user_dict = user.model_dump()
-    user_dict["updatedAt"] = datetime.now(timezone.utc)
-    await userCollection.find_one_and_update({"_id": ObjectId(id)}, {"$set": user_dict})
+async def update_user(id, user: UserUpdate):
+    # Get existing user
+    existing_user = await userCollection.find_one({"_id": ObjectId(id)})
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Prepare update data
+    update_data = {}
+    user_dict = user.model_dump(exclude_unset=True)  # Only include fields that were provided
+    
+    # Handle password hashing if provided
+    if user_dict.get("password"):
+        update_data["password"] = User.hash_password(user_dict["password"])
+    
+    # Add other fields that were provided
+    for field, value in user_dict.items():
+        if field != "password":  # Password already handled above
+            update_data[field] = value
+    
+    # Always update the updatedAt timestamp
+    update_data["updatedAt"] = datetime.now(timezone.utc)
+    
+    # Perform the update
+    await userCollection.find_one_and_update(
+        {"_id": ObjectId(id)}, 
+        {"$set": update_data}
+    )
+    
+    # Return the updated user
     updated_user = await userCollection.find_one({"_id": ObjectId(id)})
     return {"user": serializeDict(updated_user)}
 

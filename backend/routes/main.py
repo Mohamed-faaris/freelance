@@ -57,6 +57,10 @@ mainRouter.include_router(permissionsRoute, prefix="/users/permissions", tags=["
 # Include auth routes
 mainRouter.include_router(authRouter, prefix="/auth", tags=["auth"])
 
+# Include education verification routes
+mainRouter.include_router(educationVerificationRouter, prefix="", tags=["education-verification"])
+
+# Include send FSSAI email routes
 mainRouter.include_router(sendFssaiEmailRouter, prefix="/send-fssai-email", tags=["send-fssai-email"])
 
 # Include news routes

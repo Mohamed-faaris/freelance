@@ -134,7 +134,6 @@ export default function Dashboard() {
     fetchPermissions();
   }, [isAuthenticated, user?.id]);
 
-
   // Define the NavItem interface
   interface NavItem {
     id: string;
@@ -230,9 +229,8 @@ export default function Dashboard() {
 
   // Check if tab is allowed based on user permissions
   const isTabAllowed = (item: NavItem): boolean => {
-    // Superadmin can access everything
-    if (user?.role === "superadmin" || user?.role === "admin") 
-      return true;
+    // Superadmin and admin can access everything
+    if (user?.role === "superadmin" ) return true;
 
     // If no permission requirement, it's publicly accessible
     if (!item.requiredPermission) return true;

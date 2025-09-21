@@ -346,16 +346,17 @@ export default function BusinessProfilePage() {
         message: "Generating business verification PDF...",
         type: "success",
       });
-
       const response = await fetch(`${API_URL}/generate-pdf`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          fileName: `business-verification-${businessData.business_name?.replace(/\s+/g, "-") || "report"}.pdf`,
+          fileName: `${
+            businessData.business_name?.replace(/\s+/g, "-") || "report"
+          }.pdf`,
           businessName: businessData?.business_name || "",
-          businessInfo: createBusinessInfo(businessData),
+          businessData: createBusinessEmailData("", businessData).businessData,
         }),
       });
 

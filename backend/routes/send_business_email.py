@@ -77,8 +77,7 @@ async def send_business_email(request: SendBusinessEmailRequest):
     try:
         email = request.email
         business_name = request.businessName
-        business_data = request.businessData.dict()  # Convert to dict for htmlContent function
-
+        business_data = request.businessData.model_dump()  # Convert to dict for htmlContent function       
         # Generate HTML content using the utility function
         html_content = htmlContent(business_data, business_name)
 

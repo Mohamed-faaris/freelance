@@ -1,3 +1,4 @@
+from fileinput import filename
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, Any, List
@@ -61,10 +62,10 @@ class BusinessData(BaseModel):
     promoters: Optional[List[str]] = None
     creditAssessment: Optional[CreditAssessment] = None
     filingStatus: Optional[List[List[FilingStatusItem]]] = None
-
 class GeneratePDFRequest(BaseModel):
     businessName: str
     businessData: BusinessData
+    filename: Optional[str] = None
 
 # ===== HELPER FUNCTIONS =====
 # Moved to utils/html_generator.py
@@ -75,9 +76,9 @@ async def generate_pdf(request: GeneratePDFRequest):
     """Generate PDF for business verification report"""
     try:
         business_name = request.businessName
-        business_data = request.businessData.dict()  # Convert to dict for htmlContent function
-
+        business_data = request.businessData.model_dump()  # Convert to dict for htmlContent function
         # Generate HTML content using the utility function
+        print("business_data: "+str(business_data))
         html_content = htmlContent(business_data, business_name)
 
         # Generate PDF from HTML content

@@ -239,7 +239,7 @@ const CourtCaseResult: FC<CourtCaseResultProps> = ({ profileData }) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({"profile":payload.profileData}),
+        body: JSON.stringify({ profile: payload.profileData }),
         credentials: "include",
       });
 
@@ -561,7 +561,6 @@ const CourtCaseResult: FC<CourtCaseResultProps> = ({ profileData }) => {
                   className={`w-4 h-4 ml-2 ${
                     darkMode ? "text-yellow-400" : "text-yellow-600"
                   }`}
-                  title="Advanced Analysis Applied"
                 />
               )}
             </div>

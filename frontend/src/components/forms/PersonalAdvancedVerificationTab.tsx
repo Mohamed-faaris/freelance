@@ -204,6 +204,13 @@ interface ProfileData {
   };
 
   rawProfileData?: any;
+  courtCases?: {
+    casesFound?: number;
+    advancedAnalysis?: {
+      statistics?: any;
+    };
+    cases?: any[];
+  };
 }
 
 interface SectionProps {

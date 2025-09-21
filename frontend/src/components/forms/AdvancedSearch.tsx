@@ -4,6 +4,28 @@ import { useTheme } from "../../context/ThemeContext";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+interface SearchResult {
+  title?: string;
+  caseName?: string;
+  name?: string;
+  filingDate?: string;
+  date?: string;
+  score?: number;
+  cnr?: string;
+  caseNumber?: string;
+  id?: string;
+  court?: string;
+  petitioners?: string | string[];
+  respondents?: string | string[];
+  complainants?: string | string[];
+  parties?: string;
+  stage?: string;
+  status?: string;
+  nextDate?: string;
+  establishment?: string;
+  summary?: string;
+}
+
 function AdvancedSearch() {
   const { darkMode } = useTheme();
   const [selectedCourt, setSelectedCourt] = useState("consumer-forum");
@@ -17,7 +39,7 @@ function AdvancedSearch() {
     searchIn: "both",
     resultsPerPage: 10,
   });
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -71,7 +93,7 @@ function AdvancedSearch() {
     { value: "respondent", label: "Respondent" },
   ];
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: string, value: any) => {
     setSearchParams((prev) => ({
       ...prev,
       [field]: value,
@@ -144,7 +166,8 @@ function AdvancedSearch() {
       console.log("API Response:", data); // Debug log
       setSearchResults(data.results || []);
     } catch (err) {
-      setError(`Search failed: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      setError(`Search failed: ${errorMessage}`);
       console.error("Search error:", err);
     } finally {
       setLoading(false);

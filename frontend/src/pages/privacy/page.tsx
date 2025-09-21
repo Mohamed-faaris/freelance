@@ -58,11 +58,11 @@ export default function PrivacyPage() {
       {/* Header */}
       <header className="border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-2">
             <ArgusLogo />
           </Link>
           <Link
-            href="/login"
+            to="/login"
             className="text-sm text-blue-600 hover:text-blue-800 transition-colors duration-200"
           >
             Sign in
@@ -336,19 +336,19 @@ export default function PrivacyPage() {
           <div className="flex items-center justify-between text-sm text-gray-500">
             <div className="flex items-center space-x-6">
               <Link
-                href="/help"
+                to="/help"
                 className="hover:text-gray-700 transition-colors duration-200"
               >
                 Help
               </Link>
               <Link
-                href="/privacy"
+                to="/privacy"
                 className="hover:text-gray-700 transition-colors duration-200"
               >
                 Privacy
               </Link>
               <Link
-                href="/terms"
+                to="/terms"
                 className="hover:text-gray-700 transition-colors duration-200"
               >
                 Terms

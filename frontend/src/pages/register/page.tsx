@@ -207,10 +207,7 @@ export default function RegisterPage() {
         </div>
       </div>
       {error && (
-        <div className="text-red-600 text-sm dark:text-red-400">
-          {console.log("Error displayed:", error)}
-          {error}
-        </div>
+        <div className="text-red-600 text-sm dark:text-red-400">{error}</div>
       )}
     </div>
   );

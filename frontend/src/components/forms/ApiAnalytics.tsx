@@ -205,8 +205,8 @@ const ApiAnalytics = () => {
 
       // Fetch analytics data
       const analyticsResponse = await fetch(
-        `${API_URL}/analytics?${params.toString()}`
-        ,{
+        `${API_URL}/analytics?${params.toString()}`,
+        {
           credentials: "include",
         }
       );
@@ -1156,28 +1156,30 @@ const ApiAnalytics = () => {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({
-                          cx,
-                          cy,
-                          midAngle,
-                          innerRadius,
-                          outerRadius,
-                          percent,
-                          index,
-                          name,
-                        }) => {
+                        label={(entry: any) => {
+                          const {
+                            cx,
+                            cy,
+                            midAngle,
+                            innerRadius,
+                            outerRadius,
+                            percent,
+                            name,
+                          } = entry;
                           const RADIAN = Math.PI / 180;
                           const radius =
                             innerRadius + (outerRadius - innerRadius) * 0.5;
-                          const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                          const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                          const x =
+                            Number(cx) + radius * Math.cos(-midAngle * RADIAN);
+                          const y =
+                            Number(cy) + radius * Math.sin(-midAngle * RADIAN);
 
                           return (
                             <text
                               x={x}
                               y={y}
                               fill={darkMode ? "#fff" : "#333"}
-                              textAnchor={x > cx ? "start" : "end"}
+                              textAnchor={x > Number(cx) ? "start" : "end"}
                               dominantBaseline="central"
                             >
                               {`${name} (${(percent * 100).toFixed(0)}%)`}

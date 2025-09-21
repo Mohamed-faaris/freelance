@@ -16,6 +16,9 @@ from .pdf_generation import pdfRouter
 from .send_business_email import router as sendBusinessEmailRouter
 from .send_profile_email import router as sendProfileEmailRouter
 
+authMainRouter = APIRouter()
+servicesMainRouter = APIRouter()
+
 mainRouter = APIRouter()
 
 # Include user routes with a prefix and tags for organization

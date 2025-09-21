@@ -141,7 +141,7 @@ export default function LoginPage() {
             style={{ animationDelay: "0.8s" }}
           >
             <Link
-              href="/register"
+              to="/register"
               className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-300"
             >
               Create account
@@ -186,26 +186,26 @@ export default function LoginPage() {
       {/* Footer links - like Google login page */}
       <div className="mt-8 flex items-center justify-center gap-6 text-xs text-gray-500">
         <Link
-          href="/help"
+          to="/help"
           className="hover:text-gray-700 transition-colors duration-300"
         >
           Help
         </Link>
         <Link
-          href="/privacy"
+          to="/privacy"
           className="hover:text-gray-700 transition-colors duration-300"
         >
           Privacy
         </Link>
         <Link
-          href="/terms"
+          to="/terms"
           className="hover:text-gray-700 transition-colors duration-300"
         >
           Terms
         </Link>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes fadeIn {
           from {
             opacity: 0;

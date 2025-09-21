@@ -161,19 +161,19 @@ export default function TermsPage() {
           <div className="flex items-center justify-between text-sm text-gray-500">
             <div className="flex items-center space-x-6">
               <Link
-                href="/help"
+                to="/help"
                 className="hover:text-gray-700 transition-colors duration-200"
               >
                 Help
               </Link>
               <Link
-                href="/privacy"
+                to="/privacy"
                 className="hover:text-gray-700 transition-colors duration-200"
               >
                 Privacy
               </Link>
               <Link
-                href="/terms"
+                to="/terms"
                 className="hover:text-gray-700 transition-colors duration-200"
               >
                 Terms

@@ -43,6 +43,7 @@ servicesMainRouter.include_router(pdfRouter, prefix="", tags=["pdf-generation"])
 servicesMainRouter.include_router(puppeteerPdfRouter, prefix="", tags=["pdf-generation-puppeteer"])
 servicesMainRouter.include_router(sendBusinessEmailRouter, prefix="", tags=["send-business-email"])
 servicesMainRouter.include_router(sendProfileEmailRouter, prefix="", tags=["send-profile-email"])
+servicesMainRouter.include_router(sendFssaiEmailRouter, prefix="/send-fssai-email", tags=["send-fssai-email"])
 
 mainRouter = APIRouter()
 
@@ -53,6 +54,8 @@ mainRouter.include_router(permissionsRoute, prefix="/users/permissions", tags=["
 
 # Include auth routes
 mainRouter.include_router(authRouter, prefix="/auth", tags=["auth"])
+
+mainRouter.include_router(sendFssaiEmailRouter, prefix="/send-fssai-email", tags=["send-fssai-email"])
 
 # Include news routes
 mainRouter.include_router(newsRoute, prefix="/news", tags=["news"])

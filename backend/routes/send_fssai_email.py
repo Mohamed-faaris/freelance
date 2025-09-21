@@ -29,9 +29,9 @@ async def send_fssai_email(request: Request, data: Dict[str, Any]):
         # Extract email and business data from request
         recipient_email = data.get("email")
         business_data = data.get("businessData", {})
-        gst_info = data.get("gstInfo", {})
-        fssai_info = data.get("fssaiInfo", {})
-        addresses = data.get("adadr", [])
+        gst_info = business_data.get("gstInfo", {})
+        fssai_info = business_data.get("fssaiInfo", {})
+        addresses = gst_info.get("adadr", [])
 
         if not recipient_email:
             raise HTTPException(status_code=400, detail="Recipient email is required")
@@ -84,10 +84,9 @@ async def get_fssai_email_service(request: Request):
         "method": "POST",
         "parameters": {
             "email": "Recipient email address (required)",
-            "businessData": "Business information object",
-            "gstInfo": "GST verification data",
-            "fssaiInfo": "FSSAI verification data",
-            "adadr": "Address array"
+            "businessData": "Business information object containing gstInfo, fssaiInfo, etc.",
+            "fssaiInfo": "FSSAI verification data (optional)",
+            "adadr": "Address array (extracted from gstInfo.adadr)"
         }
     }
 

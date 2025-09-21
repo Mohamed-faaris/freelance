@@ -856,6 +856,7 @@ export default function FSSAIProfilePage() {
       const response = await fetch(`${API_URL}/send-fssai-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           email,
           businessName: getBusinessName(),

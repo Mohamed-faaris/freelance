@@ -17,10 +17,31 @@ from .pdf_generation_puppeteer import router as puppeteerPdfRouter
 from .send_business_email import router as sendBusinessEmailRouter
 from .send_profile_email import router as sendProfileEmailRouter
 
-from user.permissions import permissionsRoute
+from .user.permissions import permissionsRoute
 
 authMainRouter = APIRouter()
+authMainRouter.include_router(authRouter, prefix="/auth", tags=["auth"])
+
+permissionsMainRouter = APIRouter()
+permissionsMainRouter.include_router(permissionsRoute, prefix="/user/permissions", tags=["permissions"])
+permissionsMainRouter.include_router(userRoute, prefix="/users", tags=["permissions"])
+
 servicesMainRouter = APIRouter()
+servicesMainRouter.include_router(newsRoute, prefix="/news", tags=["news"])
+servicesMainRouter.include_router(statesRoute, prefix="/states", tags=["states"])
+servicesMainRouter.include_router(court_cases_router, prefix="/court-cases", tags=["court-cases"])
+servicesMainRouter.include_router(searchRouter, prefix="/search", tags=["search"])
+servicesMainRouter.include_router(analyticsRouter, prefix="/analytics", tags=["analytics"])
+servicesMainRouter.include_router(verificationRouter, prefix="", tags=["verification"])
+servicesMainRouter.include_router(verificationLiteRouter, prefix="", tags=["verification-lite"])
+servicesMainRouter.include_router(verificationMiniRouter, prefix="", tags=["verification-mini"])
+servicesMainRouter.include_router(verificationBusinessRouter, prefix="", tags=["verification-business"])
+servicesMainRouter.include_router(fssaiVerificationRouter, prefix="/fssai-verification", tags=["fssai-verification"])
+servicesMainRouter.include_router(instaFinancialsRouter, prefix="/insta-financials", tags=["insta-financials"])
+servicesMainRouter.include_router(pdfRouter, prefix="", tags=["pdf-generation"])
+servicesMainRouter.include_router(puppeteerPdfRouter, prefix="", tags=["pdf-generation-puppeteer"])
+servicesMainRouter.include_router(sendBusinessEmailRouter, prefix="", tags=["send-business-email"])
+servicesMainRouter.include_router(sendProfileEmailRouter, prefix="", tags=["send-profile-email"])
 
 mainRouter = APIRouter()
 

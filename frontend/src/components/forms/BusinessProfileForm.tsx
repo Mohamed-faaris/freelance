@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import CourtCaseTab from "./CourtCaseTab";
+import { data } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -351,13 +352,7 @@ export default function BusinessProfilePage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          data: businessData,
-          type: "business",
-          filename: `business-verification-${
-            businessData.business_name?.replace(/\s+/g, "-") || "report"
-          }.pdf`,
-        }),
+        body: JSON.stringify(createBusinessEmailData(null, businessData)),
       });
 
       if (!response.ok) {
@@ -386,7 +381,7 @@ export default function BusinessProfilePage() {
     } catch (error) {
       console.error("PDF generation error:", error);
       setToastMessage({
-        message: `Failed to generate PDF: ${error.message}`,
+        message: `Failed to generate PDF: ${(error as Error).message}`,
         type: "error",
       });
     }
@@ -456,7 +451,7 @@ export default function BusinessProfilePage() {
     } catch (error) {
       console.error("PDF generation error:", error);
       setToastMessage({
-        message: `Failed to generate PDF: ${error.message}`,
+        message: `Failed to generate PDF: ${(error as Error).message}`,
         type: "error",
       });
     }
@@ -683,13 +678,19 @@ export default function BusinessProfilePage() {
 
   // Function to create business email data
   const createBusinessEmailData = (
-    email: string,
-    businessData: BusinessProfileData | null,
-    trustScore: number,
-    creditLimit: number,
-    positiveFactors: string[],
-    negativeFactors: string[]
+    email: string | null,
+    businessData: BusinessProfileData | null
   ) => {
+    // Calculate trust score
+    const trustScore = businessData ? calculateTrustScore(businessData) : 0;
+
+    // Calculate risk factors
+    const { positiveFactors, negativeFactors } =
+      calculateRiskFactors(businessData);
+
+    // Calculate credit limit
+    const creditLimit = calculateCreditLimit(businessData);
+
     return {
       email,
       businessName: businessData?.business_name || "",
@@ -739,6 +740,26 @@ export default function BusinessProfilePage() {
           ],
         },
       },
+    };
+  };
+
+  // Function to create basic business info
+  const createBusinessInfo = (businessData: BusinessProfileData | null) => {
+    return {
+      businessName: businessData?.business_name || "",
+      legalName: businessData?.legal_name || "",
+      gstin: businessData?.gstin || "",
+      panNumber: businessData?.pan_number || "",
+      constitutionOfBusiness: businessData?.constitution_of_business || "",
+      taxpayerType: businessData?.taxpayer_type || "",
+      gstinStatus: businessData?.gstin_status || "",
+      dateOfRegistration: businessData?.date_of_registration || "",
+      natureOfBusiness:
+        businessData?.nature_of_core_business_activity_description || "",
+      annualTurnover: businessData?.annual_turnover || "",
+      centerJurisdiction: businessData?.center_jurisdiction || "",
+      stateJurisdiction: businessData?.state_jurisdiction || "",
+      promoters: businessData?.promoters || [],
     };
   };
 
@@ -821,28 +842,11 @@ export default function BusinessProfilePage() {
   const handleSendBusinessEmail = async (email: any) => {
     setIsSendingEmail(true);
     try {
-      // Get risk factors
-      const trustScore = businessData ? calculateTrustScore(businessData) : 0;
-      const { positiveFactors, negativeFactors } =
-        calculateRiskFactors(businessData);
-
-      // Get credit limit
-      const creditLimit = calculateCreditLimit(businessData);
-
       // Send to API
       const response = await fetch(`${API_URL}/send-business-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          createBusinessEmailData(
-            email,
-            businessData,
-            trustScore,
-            creditLimit,
-            positiveFactors,
-            negativeFactors
-          )
-        ),
+        body: JSON.stringify(createBusinessEmailData(email, businessData)),
       });
 
       if (!response.ok) throw new Error("Failed to send email");
@@ -2445,7 +2449,9 @@ export default function BusinessProfilePage() {
       } catch (error) {
         console.error("Error fetching company data:", error);
         setToastMessage({
-          message: `Company report generation failed: ${error.message}`,
+          message: `Company report generation failed: ${
+            (error as Error).message
+          }`,
           type: "error",
         });
       } finally {

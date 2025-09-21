@@ -77,8 +77,7 @@ async def generate_pdf(request: GeneratePDFRequest):
     try:
         business_name = request.businessName
         business_data = request.businessData.model_dump()  # Convert to dict for htmlContent function
-        # Generate HTML content using the utility function
-        print("business_data: "+str(business_data))
+        
         html_content = htmlContent(business_data, business_name)
 
         # Generate PDF from HTML content

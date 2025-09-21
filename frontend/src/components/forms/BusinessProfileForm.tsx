@@ -2427,6 +2427,7 @@ export default function BusinessProfilePage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ cin }),
+          credentials: "include",
         });
 
         if (!response.ok) {

@@ -17,6 +17,7 @@ from .pdf_generation_puppeteer import router as puppeteerPdfRouter
 from .send_business_email import router as sendBusinessEmailRouter
 from .send_profile_email import router as sendProfileEmailRouter
 from .send_fssai_email import router as sendFssaiEmailRouter
+from .education_verification import router as educationVerificationRouter
 
 from .user.permissions import permissionsRoute
 
@@ -44,6 +45,7 @@ servicesMainRouter.include_router(puppeteerPdfRouter, prefix="", tags=["pdf-gene
 servicesMainRouter.include_router(sendBusinessEmailRouter, prefix="", tags=["send-business-email"])
 servicesMainRouter.include_router(sendProfileEmailRouter, prefix="", tags=["send-profile-email"])
 servicesMainRouter.include_router(sendFssaiEmailRouter, prefix="/send-fssai-email", tags=["send-fssai-email"])
+servicesMainRouter.include_router(educationVerificationRouter, prefix="", tags=["education-verification"])
 
 mainRouter = APIRouter()
 

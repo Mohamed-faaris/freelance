@@ -1,4 +1,3 @@
-#need to be veri    fied
 
 from pydantic import BaseModel, Field, EmailStr, validator
 from typing import Optional, List, Literal

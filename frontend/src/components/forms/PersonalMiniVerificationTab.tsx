@@ -31,6 +31,7 @@ import {
 import { useTheme } from "../../context/ThemeContext";
 import CourtCaseResult from "../CourtCaseResult";
 import jsPDF from "jspdf";
+const API_URL = import.meta.env.VITE_API_URL ;
 
 interface ToastProps {
   message: string;
@@ -453,11 +454,12 @@ const PersonalMiniVerificationTab: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/verification-mini", {
+      const response = await fetch(`${API_URL}/verification-mini`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           name,
           dob,
@@ -1012,7 +1014,11 @@ const PersonalMiniVerificationTab: React.FC = () => {
   };
 
   return (
-    <div className={`p-6 rounded-lg ${darkMode ? "bg-gray-800" : "bg-white"}`}>
+    <div
+      className={`p-4 md:p-6 rounded-lg ${
+        darkMode ? "bg-gray-800" : "bg-white"
+      }`}
+    >
       {/* Toast notification */}
       {toast && (
         <Toast
@@ -1022,15 +1028,19 @@ const PersonalMiniVerificationTab: React.FC = () => {
         />
       )}
 
-      <div className="mb-6">
+      <div className="mb-4 md:mb-6">
         <h2
-          className={`text-2xl font-bold mb-2 ${
+          className={`text-xl md:text-2xl font-bold mb-2 ${
             darkMode ? "text-white" : "text-gray-800"
           }`}
         >
           Verification
         </h2>
-        <p className={`${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+        <p
+          className={`text-sm md:text-base ${
+            darkMode ? "text-gray-300" : "text-gray-600"
+          }`}
+        >
           Verify identity information including Aadhaar, PAN, Driving License,
           Vehicle RC, Employment History, and Court Case
         </p>
@@ -1038,24 +1048,24 @@ const PersonalMiniVerificationTab: React.FC = () => {
 
       {verificationResults ? (
         // Verification Results Display
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {/* Personal Information Summary */}
-          <div className="hidden md:flex space-x-3">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
             <button
               onClick={() => exportPDF(verificationResults)}
-              className={`flex items-center gap-1 px-3 py-1.5 ${
+              className={`flex items-center justify-center gap-2 px-4 py-2 ${
                 darkMode
                   ? "bg-gray-700/50 hover:bg-gray-700/80 text-white"
                   : "bg-gray-400/20 hover:bg-gray-400/30 text-black "
-              }  rounded-md transition-colors text-sm font-medium`}
+              }  rounded-md transition-colors text-sm font-medium w-full sm:w-auto`}
               type="button"
             >
               <Download className="w-4 h-4" />
-              PDF
+              Export PDF
             </button>
           </div>
           <div
-            className={`p-4 rounded-lg ${
+            className={`p-3 md:p-4 rounded-lg ${
               darkMode ? "bg-gray-700" : "bg-gray-50"
             } border ${darkMode ? "border-gray-600" : "border-gray-200"}`}
           >
@@ -1066,7 +1076,7 @@ const PersonalMiniVerificationTab: React.FC = () => {
             >
               Personal Information
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               <div className="flex items-start space-x-3">
                 <User
                   className={`w-5 h-5 mt-1 ${
@@ -2731,14 +2741,14 @@ const PersonalMiniVerificationTab: React.FC = () => {
           )}
 
           {/* Action buttons */}
-          <div className="flex justify-end space-x-3 mt-6">
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-3 mt-4 md:mt-6">
             <button
               onClick={handleReset}
-              className={`px-4 py-2 rounded-lg transition-colors ${
+              className={`px-4 py-2 rounded-lg transition-colors text-sm md:text-base ${
                 darkMode
                   ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
                   : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-              }`}
+              } w-full sm:w-auto`}
             >
               New Verification
             </button>
@@ -2746,10 +2756,10 @@ const PersonalMiniVerificationTab: React.FC = () => {
         </div>
       ) : (
         // Verification Form
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
           {/* Core Personal Information */}
           <div
-            className={`p-4 rounded-lg ${
+            className={`p-3 md:p-4 rounded-lg ${
               darkMode ? "bg-gray-700" : "bg-gray-50"
             } border ${darkMode ? "border-gray-600" : "border-gray-200"}`}
           >
@@ -2761,7 +2771,7 @@ const PersonalMiniVerificationTab: React.FC = () => {
               Personal Information
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-x-4 gap-y-4 md:gap-y-5">
               {/* Name Input */}
               <div>
                 <label
@@ -4604,11 +4614,11 @@ const PersonalMiniVerificationTab: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className={`mt-6 flex justify-center py-3 px-6 border border-transparent rounded-md shadow-md text-base font-medium text-white ${
+            className={`mt-4 md:mt-6 flex justify-center py-2 md:py-3 px-4 md:px-6 border border-transparent rounded-md shadow-md text-sm md:text-base font-medium text-white ${
               darkMode
                 ? "bg-blue-700 hover:bg-blue-600 focus:ring-blue-600"
                 : "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
-            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-50 transition-colors disabled:opacity-70 disabled:cursor-not-allowed`}
+            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-50 transition-colors disabled:opacity-70 disabled:cursor-not-allowed w-full sm:w-auto`}
           >
             {isLoading ? (
               <span className="flex items-center">

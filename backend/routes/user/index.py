@@ -5,12 +5,10 @@ from schemas.user import serializeDict, serializeList
 from bson import ObjectId
 from config.db import userCollection
 from datetime import datetime, timezone
-from .permissions import permissionsRoute
 
 userRoute = APIRouter()
 
-# Include permissions routes as a sub-router
-userRoute.include_router(permissionsRoute, prefix="/permissions", tags=["permissions"])
+
 
 
 @userRoute.get("")

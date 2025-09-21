@@ -50,10 +50,6 @@ ENABLE_ANALYTICS_TRACKING = os.getenv("ENABLE_ANALYTICS_TRACKING", "true").lower
 VERIFICATION_CACHE_TTL = int(os.getenv("VERIFICATION_CACHE_TTL", "3600"))  # 1 hour default
 print(f"verification_advanced loaded. BASE_URL_V1={BASE_URL_V1}, BASE_URL_V2={BASE_URL_V2}, ENABLE_ANALYTICS_TRACKING={ENABLE_ANALYTICS_TRACKING}")
 
-# Simple in-memory token cache to avoid repeated auth requests
-_TOKEN_CACHE: dict = {"token": None, "expiry": 0}
-_TOKEN_LOCK = None
-
 # Production limits
 PRODUCTION_LIMITS = {
     "API_TIMEOUT": 8000,  # 8 second timeout for individual APIs
@@ -61,90 +57,11 @@ PRODUCTION_LIMITS = {
     "MAX_GSTIN_CALLS": 2,  # Limit GSTIN verification calls
 }
 
-# API cost mapping
-API_COSTS = {
-    "verification/pan-plus": 4.0,
-    "mobile-intelligence/mobile-to-name": 5.0,
-    "mobile-intelligence/mobile-to-network-details": 5.0,
-    "mobile-intelligence/mobile-to-digital-age": 8.0,
-    "mobile-intelligence/mobile-to-multiple-upi": 3.5,
-    "verification/epfo/pan-to-uan": 5.0,
-    "verification/pan-kra-status": 2.5,
-    "verification/pan-to-fathername": 2.5,
-    "verification/epfo/uan-to-employment-history": 5.0,
-    "verification/gstinlite": 2.5,
-    "verification/gstin-advanced": 5.0,
-    "verification/pan-msme-check": 5.0,
-    "business-compliance/fssai-verification": 3.0,
-    "financial-services/credit-bureau/credit-report": 30.0,
-    "default": 1.0,
-}
-
 class VerificationRequest(BaseModel):
     name: str
     mobile_number: str
     aadhaar_number: Optional[str] = None
     pan_number: str
-
-async def get_access_token():
-    """Get access token from auth service"""
-    try:
-        # Reuse cached token if still valid
-        import time
-        if _TOKEN_CACHE.get("token") and time.time() < _TOKEN_CACHE.get("expiry", 0):
-            print("get_access_token: using cached access token")
-            return _TOKEN_CACHE["token"]
-
-        # Ensure a single coroutine performs the token fetch at a time
-        global _TOKEN_LOCK
-        if _TOKEN_LOCK is None:
-            _TOKEN_LOCK = asyncio.Lock()
-
-        async with _TOKEN_LOCK:
-            # Another coroutine may have populated the cache while waiting for the lock
-            if _TOKEN_CACHE.get("token") and time.time() < _TOKEN_CACHE.get("expiry", 0):
-                print("get_access_token: using cached access token (after lock)")
-                return _TOKEN_CACHE["token"]
-
-            print("get_access_token: starting token retrieval from auth service")
-            # Prepare the request to get access token
-            token_url = f"{AUTH_SERVICE_URL}/oauth/token"
-            print(f"get_access_token: token_url={token_url}")
-            payload = {
-                "grant_type": "client_credentials",
-                "client_id": AUTH_SERVICE_CLIENT_ID,
-                "client_secret": AUTH_SERVICE_CLIENT_SECRET,
-                "scope": "api"
-            }
-            headers = {
-                "Content-Type": "application/x-www-form-urlencoded"
-            }
-
-            # Make the request synchronously in a thread and return the parsed token data
-            def _get_token_data():
-                response = requests.post(token_url, data=payload, headers=headers, timeout=10)
-                response.raise_for_status()
-                return response.json()
-
-            token_data = await asyncio.to_thread(_get_token_data)
-            access_token = token_data.get("access_token")
-            expires_in = token_data.get("expires_in") or token_data.get("expiry")
-
-            if isinstance(expires_in, (int, float)):
-                expiry_time = time.time() + float(expires_in)
-            else:
-                # default cache for 30 minutes
-                expiry_time = time.time() + 30 * 60
-
-            _TOKEN_CACHE["token"] = access_token
-            _TOKEN_CACHE["expiry"] = expiry_time
-            print(f"get_access_token: obtained access token: {'<masked>' if access_token else None}, cached until {expiry_time}")
-            return access_token
-
-    except Exception as error:
-        print(f"Failed to get access token: {error}")
-        # Fallback to a cached token or raise error
-        raise HTTPException(status_code=500, detail="Failed to authenticate with external service")
 
 async def fetch_with_timeout(url: str, headers: dict, timeout: int = PRODUCTION_LIMITS["API_TIMEOUT"]):
     """Fetch with timeout protection using requests in a thread"""
@@ -160,97 +77,6 @@ async def fetch_with_timeout(url: str, headers: dict, timeout: int = PRODUCTION_
             raise
     
     return await asyncio.to_thread(_sync_request)
-
-async def track_external_api_call(
-    user_id: str,
-    username: str,
-    user_role: str,
-    service: str,
-    api_function,
-    *args,
-    **kwargs
-):
-    """Track external API calls with analytics"""
-    start_time = datetime.now()
-    print(f"track_external_api_call: starting call service={service} user={username} id={user_id}")
-    try:
-        result = await api_function(*args, **kwargs)
-        response_time = (datetime.now() - start_time).total_seconds() * 1000  # Convert to ms
-        cost = API_COSTS.get(service, API_COSTS["default"])
-        print(f"track_external_api_call: success service={service} response_time_ms={response_time} cost={cost}")
-
-        # Log successful API call if analytics tracking is enabled
-        if ENABLE_ANALYTICS_TRACKING:
-            try:
-                # Ensure requestData and responseData are dictionaries for ApiAnalytics
-                request_payload = None
-                if args:
-                    first = args[0]
-                    if isinstance(first, dict):
-                        request_payload = first
-                    else:
-                        request_payload = {"value": first}
-
-                response_payload = result if isinstance(result, dict) else {"result": result}
-
-                await asyncio.to_thread(ApiAnalytics.log_api_call, {
-                    "userId": ObjectId(user_id),
-                    "username": username,
-                    "userRole": user_role,
-                    "service": service,
-                    "endpoint": service,
-                    "apiVersion": "v2" if "pan-plus" in service else "v1",
-                    "cost": cost,
-                    "statusCode": 200,
-                    "responseTime": response_time,
-                    "profileType": "advanced",
-                    "requestData": request_payload,
-                    "responseData": response_payload,
-                    "businessId": None,
-                })
-                print(f"track_external_api_call: analytics logged for service={service}")
-            except Exception as ae:
-                print(f"track_external_api_call: analytics logging failed: {ae}")
-
-        return result
-    except Exception as error:
-        response_time = (datetime.now() - start_time).total_seconds() * 1000
-        print(f"track_external_api_call: error service={service} error={error} response_time_ms={response_time}")
-
-        # Log failed API call if analytics tracking is enabled
-        if ENABLE_ANALYTICS_TRACKING:
-            try:
-                # Ensure requestData and responseData are dictionaries for ApiAnalytics (failure case)
-                request_payload = None
-                if args:
-                    first = args[0]
-                    if isinstance(first, dict):
-                        request_payload = first
-                    else:
-                        request_payload = {"value": first}
-
-                response_payload = {"error": str(error)}
-
-                await asyncio.to_thread(ApiAnalytics.log_api_call, {
-                    "userId": ObjectId(user_id),
-                    "username": username,
-                    "userRole": user_role,
-                    "service": service,
-                    "endpoint": service,
-                    "apiVersion": "v2" if "pan-plus" in service else "v1",
-                    "cost": API_COSTS.get(service, API_COSTS["default"]),
-                    "statusCode": 500,
-                    "responseTime": response_time,
-                    "profileType": "advanced",
-                    "requestData": request_payload,
-                    "responseData": response_payload,
-                    "businessId": None,
-                })
-                print(f"track_external_api_call: analytics logged (failure) for service={service}")
-            except Exception as ae:
-                print(f"track_external_api_call: analytics logging failed for error case: {ae}")
-
-        raise error
 
 @verificationRouter.post("/verification-advanced")
 async def verification_advanced(request: Request, data: VerificationRequest):
@@ -675,7 +501,7 @@ async def fetch_mobile_to_name(mobile_number: str, user_id: str, username: str, 
     )
 
 async def _fetch_mobile_to_name(mobile_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/mobile-intelligence/mobile-to-name?mobile_number={mobile_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -690,7 +516,7 @@ async def fetch_mobile_network_details(mobile_number: str, user_id: str, usernam
     )
 
 async def _fetch_mobile_network_details(mobile_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/mobile-intelligence/mobile-to-network-details?mobile_number={mobile_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -705,7 +531,7 @@ async def fetch_pan_to_uan(pan_number: str, user_id: str, username: str, user_ro
     )
 
 async def _fetch_pan_to_uan(pan_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/verification/epfo/pan-to-uan?pan_number={pan_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -720,7 +546,7 @@ async def fetch_pan_to_father_name(pan_number: str, user_id: str, username: str,
     )
 
 async def _fetch_pan_to_father_name(pan_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/verification/pan-to-fathername?pan_number={pan_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -735,7 +561,7 @@ async def fetch_credit_score(name: str, pan_number: str, mobile_number: str, use
     )
 
 async def _fetch_credit_score(name: str, pan_number: str, mobile_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/financial-services/credit-bureau/credit-report?full_name={name}&pan_number={pan_number}&mobile_number={mobile_number}&consent=Y&purpose=Profile%20Generation"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -750,7 +576,7 @@ async def fetch_uan_employment_history(uan_number: str, user_id: str, username: 
     )
 
 async def _fetch_uan_employment_history(uan_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/verification/epfo/uan-to-employment-history?uan_number={uan_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -765,7 +591,7 @@ async def fetch_pan_msme_check(pan_number: str, user_id: str, username: str, use
     )
 
 async def _fetch_pan_msme_check(pan_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/verification/pan-msme-check?pan_number={pan_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",

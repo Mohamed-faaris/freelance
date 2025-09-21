@@ -13,8 +13,11 @@ from .verification_business import router as verificationBusinessRouter
 from .fssai_verification import router as fssaiVerificationRouter
 from .insta_financials import router as instaFinancialsRouter
 from .pdf_generation import pdfRouter
+from .pdf_generation_puppeteer import router as puppeteerPdfRouter
 from .send_business_email import router as sendBusinessEmailRouter
 from .send_profile_email import router as sendProfileEmailRouter
+
+from user.permissions import permissionsRoute
 
 authMainRouter = APIRouter()
 servicesMainRouter = APIRouter()
@@ -24,6 +27,7 @@ mainRouter = APIRouter()
 # Include user routes with a prefix and tags for organization
 # This now includes both user routes and permissions routes (/users/permissions)
 mainRouter.include_router(userRoute, prefix="/users", tags=["users"])
+mainRouter.include_router(permissionsRoute, prefix="/users/permissions", tags=["permissions"])
 
 # Include auth routes
 mainRouter.include_router(authRouter, prefix="/auth", tags=["auth"])
@@ -63,6 +67,9 @@ mainRouter.include_router(instaFinancialsRouter, prefix="/insta-financials", tag
 
 # Include PDF generation routes
 mainRouter.include_router(pdfRouter, prefix="", tags=["pdf-generation"])
+
+# Include Puppeteer PDF generation routes
+mainRouter.include_router(puppeteerPdfRouter, prefix="", tags=["pdf-generation-puppeteer"])
 
 # Include send business email routes
 mainRouter.include_router(sendBusinessEmailRouter, prefix="", tags=["send-business-email"])

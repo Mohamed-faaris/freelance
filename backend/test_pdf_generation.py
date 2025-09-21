@@ -122,7 +122,7 @@ def test_pdf_generation():
 
     # API endpoint
     base_url = "http://localhost:8000"  # Adjust if your server runs on different port
-    endpoint = "/pdf/generate-pdf"
+    endpoint = "/api/generate-pdf"
 
     # Test data
     test_payload = {
@@ -169,7 +169,7 @@ def test_health_check():
     """Test the health check endpoint"""
 
     base_url = "http://localhost:8000"
-    endpoint = "/pdf/health"
+    endpoint = "/api/health"
 
     try:
         print("\nTesting Health Check...")

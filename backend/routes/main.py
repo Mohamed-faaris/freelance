@@ -59,7 +59,7 @@ mainRouter.include_router(fssaiVerificationRouter, prefix="/fssai-verification",
 mainRouter.include_router(instaFinancialsRouter, prefix="/insta-financials", tags=["insta-financials"])
 
 # Include PDF generation routes
-mainRouter.include_router(pdfRouter, prefix="/pdf", tags=["pdf-generation"])
+mainRouter.include_router(pdfRouter, prefix="", tags=["pdf-generation"])
 
 # Include send business email routes
 mainRouter.include_router(sendBusinessEmailRouter, prefix="", tags=["send-business-email"])

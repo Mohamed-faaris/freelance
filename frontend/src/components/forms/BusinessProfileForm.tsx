@@ -37,7 +37,7 @@ import {
 import { useTheme } from "../../context/ThemeContext";
 import CourtCaseTab from "./CourtCaseTab";
 
-const API_URL = import.meta.env.VITE_API_URL
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface BusinessProfileData {
   contact_details: {
@@ -681,81 +681,150 @@ export default function BusinessProfilePage() {
     else return estimatedTurnover * 0.05;
   };
 
+  // Function to create business email data
+  const createBusinessEmailData = (
+    email: string,
+    businessData: BusinessProfileData | null,
+    trustScore: number,
+    creditLimit: number,
+    positiveFactors: string[],
+    negativeFactors: string[]
+  ) => {
+    return {
+      email,
+      businessName: businessData?.business_name || "",
+      businessData: {
+        businessInfo: {
+          business_name: businessData?.business_name || "",
+          legal_name: businessData?.legal_name || "",
+          gstin: businessData?.gstin || "",
+          pan_number: businessData?.pan_number || "",
+          constitution_of_business:
+            businessData?.constitution_of_business || "",
+          taxpayer_type: businessData?.taxpayer_type || "",
+          gstin_status: businessData?.gstin_status || "",
+          date_of_registration: businessData?.date_of_registration || "",
+          nature_bus_activities: businessData?.nature_bus_activities || [],
+          nature_of_core_business_activity_description:
+            businessData?.nature_of_core_business_activity_description || "",
+        },
+        contactInfo: businessData?.contact_details || {},
+        jurisdictionInfo: {
+          center_jurisdiction: businessData?.center_jurisdiction || "",
+          state_jurisdiction: businessData?.state_jurisdiction || "",
+        },
+        financialInfo: {
+          annual_turnover: businessData?.annual_turnover || "",
+          annual_turnover_fy: businessData?.annual_turnover_fy || "",
+          percentage_in_cash: businessData?.percentage_in_cash || "",
+        },
+        promoters: businessData?.promoters || [],
+        filingStatus: businessData?.filing_status || [],
+        creditAssessment: {
+          score: trustScore,
+          label:
+            trustScore >= 80
+              ? "Low Risk"
+              : trustScore >= 65
+              ? "Moderate Risk"
+              : "High Risk",
+          creditLimit: formatCurrency(creditLimit),
+          positiveFactors: positiveFactors,
+          negativeFactors: negativeFactors,
+          recommendations: [
+            "Complete Aadhaar validation for all promoters",
+            "Arrange for field verification to strengthen credibility",
+            "Provide audited financial statements for better assessment",
+            "Share details of existing loans and banking relationships",
+          ],
+        },
+      },
+    };
+  };
+
+  // Function to calculate risk factors
+  const calculateRiskFactors = (businessData: BusinessProfileData | null) => {
+    const positiveFactors: string[] = [];
+    const negativeFactors: string[] = [];
+
+    // Fill positive factors
+    if (businessData && businessData.gstin_status === "Active") {
+      positiveFactors.push("Active GSTIN status");
+    }
+    if (
+      businessData &&
+      businessData.filing_status &&
+      businessData.filing_status[0] &&
+      businessData.filing_status[0].length >= 15
+    ) {
+      positiveFactors.push("Excellent filing compliance");
+    } else if (
+      businessData &&
+      businessData.filing_status &&
+      businessData.filing_status[0] &&
+      businessData.filing_status[0].length >= 8
+    ) {
+      positiveFactors.push("Good filing compliance");
+    }
+    if (
+      businessData &&
+      businessData.promoters &&
+      businessData.promoters.length >= 2
+    ) {
+      positiveFactors.push("Multiple promoters/directors");
+    }
+    if (
+      businessData &&
+      businessData.constitution_of_business === "Private Limited Company"
+    ) {
+      positiveFactors.push("Private limited company structure");
+    }
+    if (businessData && businessData.date_of_registration) {
+      const registrationDate = new Date(businessData.date_of_registration);
+      const currentDate = new Date();
+      const ageInYears =
+        (currentDate.getTime() - registrationDate.getTime()) /
+        (1000 * 60 * 60 * 24 * 365);
+      if (ageInYears >= 3) {
+        positiveFactors.push("Established business history");
+      } else {
+        negativeFactors.push("Recent business registration");
+      }
+    }
+    if (
+      businessData &&
+      businessData.center_jurisdiction &&
+      businessData.state_jurisdiction
+    ) {
+      positiveFactors.push("Clear jurisdiction information");
+    }
+
+    // Fill negative factors
+    if (businessData && businessData.aadhaar_validation !== "Yes") {
+      negativeFactors.push("No Aadhaar validation");
+    }
+    if (businessData && businessData.field_visit_conducted !== "Yes") {
+      negativeFactors.push("No field verification");
+    }
+    if (
+      businessData &&
+      businessData.annual_turnover &&
+      typeof businessData.annual_turnover === "string" &&
+      businessData.annual_turnover.includes("1.5 Cr. to 5 Cr.")
+    ) {
+      negativeFactors.push("Moderate annual turnover");
+    }
+
+    return { positiveFactors, negativeFactors };
+  };
+
   const handleSendBusinessEmail = async (email: any) => {
     setIsSendingEmail(true);
     try {
       // Get risk factors
       const trustScore = businessData ? calculateTrustScore(businessData) : 0;
-      const positiveFactors = [];
-      const negativeFactors = [];
-
-      // Fill positive factors
-      if (businessData && businessData.gstin_status === "Active") {
-        positiveFactors.push("Active GSTIN status");
-      }
-      if (
-        businessData &&
-        businessData.filing_status &&
-        businessData.filing_status[0] &&
-        businessData.filing_status[0].length >= 15
-      ) {
-        positiveFactors.push("Excellent filing compliance");
-      } else if (
-        businessData &&
-        businessData.filing_status &&
-        businessData.filing_status[0] &&
-        businessData.filing_status[0].length >= 8
-      ) {
-        positiveFactors.push("Good filing compliance");
-      }
-      if (
-        businessData &&
-        businessData.promoters &&
-        businessData.promoters.length >= 2
-      ) {
-        positiveFactors.push("Multiple promoters/directors");
-      }
-      if (
-        businessData &&
-        businessData.constitution_of_business === "Private Limited Company"
-      ) {
-        positiveFactors.push("Private limited company structure");
-      }
-      if (businessData && businessData.date_of_registration) {
-        const registrationDate = new Date(businessData.date_of_registration);
-        const currentDate = new Date();
-        const ageInYears =
-          (currentDate.getTime() - registrationDate.getTime()) /
-          (1000 * 60 * 60 * 24 * 365);
-        if (ageInYears >= 3) {
-          positiveFactors.push("Established business history");
-        } else {
-          negativeFactors.push("Recent business registration");
-        }
-      }
-      if (
-        businessData &&
-        businessData.center_jurisdiction &&
-        businessData.state_jurisdiction
-      ) {
-        positiveFactors.push("Clear jurisdiction information");
-      }
-
-      // Fill negative factors
-      if (businessData && businessData.aadhaar_validation !== "Yes") {
-        negativeFactors.push("No Aadhaar validation");
-      }
-      if (businessData && businessData.field_visit_conducted !== "Yes") {
-        negativeFactors.push("No field verification");
-      }
-      if (
-        businessData &&
-        businessData.annual_turnover &&
-        typeof businessData.annual_turnover === "string" &&
-        businessData.annual_turnover.includes("1.5 Cr. to 5 Cr.")
-      ) {
-        negativeFactors.push("Moderate annual turnover");
-      }
+      const { positiveFactors, negativeFactors } =
+        calculateRiskFactors(businessData);
 
       // Get credit limit
       const creditLimit = calculateCreditLimit(businessData);
@@ -764,57 +833,16 @@ export default function BusinessProfilePage() {
       const response = await fetch(`${API_URL}/send-business-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          businessName: businessData?.business_name || "",
-          businessData: {
-            businessInfo: {
-              business_name: businessData?.business_name || "",
-              legal_name: businessData?.legal_name || "",
-              gstin: businessData?.gstin || "",
-              pan_number: businessData?.pan_number || "",
-              constitution_of_business:
-                businessData?.constitution_of_business || "",
-              taxpayer_type: businessData?.taxpayer_type || "",
-              gstin_status: businessData?.gstin_status || "",
-              date_of_registration: businessData?.date_of_registration || "",
-              nature_bus_activities: businessData?.nature_bus_activities || [],
-              nature_of_core_business_activity_description:
-                businessData?.nature_of_core_business_activity_description ||
-                "",
-            },
-            contactInfo: businessData?.contact_details || {},
-            jurisdictionInfo: {
-              center_jurisdiction: businessData?.center_jurisdiction || "",
-              state_jurisdiction: businessData?.state_jurisdiction || "",
-            },
-            financialInfo: {
-              annual_turnover: businessData?.annual_turnover || "",
-              annual_turnover_fy: businessData?.annual_turnover_fy || "",
-              percentage_in_cash: businessData?.percentage_in_cash || "",
-            },
-            promoters: businessData?.promoters || [],
-            filingStatus: businessData?.filing_status || [],
-            creditAssessment: {
-              score: trustScore,
-              label:
-                trustScore >= 80
-                  ? "Low Risk"
-                  : trustScore >= 65
-                  ? "Moderate Risk"
-                  : "High Risk",
-              creditLimit: formatCurrency(creditLimit),
-              positiveFactors: positiveFactors,
-              negativeFactors: negativeFactors,
-              recommendations: [
-                "Complete Aadhaar validation for all promoters",
-                "Arrange for field verification to strengthen credibility",
-                "Provide audited financial statements for better assessment",
-                "Share details of existing loans and banking relationships",
-              ],
-            },
-          },
-        }),
+        body: JSON.stringify(
+          createBusinessEmailData(
+            email,
+            businessData,
+            trustScore,
+            creditLimit,
+            positiveFactors,
+            negativeFactors
+          )
+        ),
       });
 
       if (!response.ok) throw new Error("Failed to send email");
@@ -1148,8 +1176,7 @@ export default function BusinessProfilePage() {
 
   // Render Analytics
   const renderAnalytics = (data: BusinessProfileData) => {
-    const positiveFactors = [];
-    const negativeFactors = [];
+    const { positiveFactors, negativeFactors } = calculateRiskFactors(data);
     const explanations: { [key: string]: string } = {
       // Positive Factors Explanations
       "Active GSTIN status":
@@ -1183,79 +1210,6 @@ export default function BusinessProfilePage() {
       "Recent business registration":
         "The business has been operating for less than 3 years, indicating limited track record.",
     };
-
-    // GSTIN Status Check
-    if (data.gstin_status === "Active") {
-      positiveFactors.push("Active GSTIN status");
-    } else {
-      negativeFactors.push("Inactive GSTIN status");
-    }
-
-    // Filing Status
-    if (
-      data.filing_status &&
-      data.filing_status.length > 0 &&
-      data.filing_status[0]
-    ) {
-      const filedReturns = data.filing_status[0].filter(
-        (filing) => filing.status === "Filed"
-      );
-      if (filedReturns.length >= 20) {
-        positiveFactors.push("Excellent filing compliance");
-      } else if (filedReturns.length >= 10) {
-        positiveFactors.push("Good filing compliance");
-      } else {
-        negativeFactors.push("Low filing compliance");
-      }
-    }
-
-    // Verification
-    if (data.aadhaar_validation !== "Yes") {
-      negativeFactors.push("No Aadhaar validation");
-    }
-
-    if (data.field_visit_conducted !== "Yes") {
-      negativeFactors.push("No field verification");
-    }
-
-    // Promoters
-    if (data.promoters && data.promoters.length >= 2) {
-      positiveFactors.push("Multiple promoters/directors");
-    }
-
-    // Business Structure
-    if (data.constitution_of_business === "Private Limited Company") {
-      positiveFactors.push("Private limited company structure");
-    }
-
-    // Business Age
-    if (data.date_of_registration) {
-      const registrationDate = new Date(data.date_of_registration);
-      const currentDate = new Date();
-      const ageInYears =
-        (currentDate.getTime() - registrationDate.getTime()) /
-        (1000 * 60 * 60 * 24 * 365);
-
-      if (ageInYears >= 3) {
-        positiveFactors.push("Established business history");
-      } else {
-        negativeFactors.push("Recent business registration");
-      }
-    }
-
-    // Turnover
-    if (
-      data.annual_turnover &&
-      typeof data.annual_turnover === "string" &&
-      data.annual_turnover.includes("1.5 Cr. to 5 Cr.")
-    ) {
-      negativeFactors.push("Moderate annual turnover");
-    }
-
-    // Jurisdiction
-    if (data.center_jurisdiction && data.state_jurisdiction) {
-      positiveFactors.push("Clear jurisdiction information");
-    }
 
     return (
       <div>

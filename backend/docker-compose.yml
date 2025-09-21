@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # Auth Microservice - Port 8001
+  auth-service:
+    build: .
+    ports:
+      - "8001:8000"
+    environment:
+      - SERVICE_NAME=auth
+      - SERVICE_PORT=8000
+    volumes:
+      - .:/app
+      - /app/env
+    command: python -m uvicorn microServices.authMicrosService:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - mongodb
+    networks:
+      - backend-network
+
+  # Permissions Microservice - Port 8002
+  permissions-service:
+    build: .
+    ports:
+      - "8002:8000"
+    environment:
+      - SERVICE_NAME=permissions
+      - SERVICE_PORT=8000
+    volumes:
+      - .:/app
+      - /app/env
+    command: python -m uvicorn microServices.permissionsMicrosService:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - mongodb
+    networks:
+      - backend-network
+
+  # Services Microservice - Port 8003
+  services-service:
+    build: .
+    ports:
+      - "8003:8000"
+    environment:
+      - SERVICE_NAME=services
+      - SERVICE_PORT=8000
+    volumes:
+      - .:/app
+      - /app/env
+    command: python -m uvicorn microServices.servicesMicrosService:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - mongodb
+    networks:
+      - backend-network
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    networks:
+      - backend-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  backend-network:
+    driver: bridge

@@ -13,6 +13,7 @@ from .verification_business import router as verificationBusinessRouter
 from .fssai_verification import router as fssaiVerificationRouter
 from .insta_financials import router as instaFinancialsRouter
 from .pdf_generation import pdfRouter
+from .send_business_email import router as sendBusinessEmailRouter
 # Import other route modules here as you add them, e.g.:
 # from .other_route import otherRoute
 
@@ -60,6 +61,9 @@ mainRouter.include_router(instaFinancialsRouter, prefix="/insta-financials", tag
 
 # Include PDF generation routes
 mainRouter.include_router(pdfRouter, prefix="/pdf", tags=["pdf-generation"])
+
+# Include send business email routes
+mainRouter.include_router(sendBusinessEmailRouter, prefix="", tags=["send-business-email"])
 
 # Include other routes here, e.g.:
 # mainRouter.include_router(otherRoute, prefix="/other", tags=["other"])

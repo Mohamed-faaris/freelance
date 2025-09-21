@@ -85,8 +85,7 @@ class MailService:
             message = MessageSchema(
                 subject=email_data.subject,
                 recipients=email_data.recipients,
-                body=email_data.body,
-                html=email_data.html_body,
+                body= email_data.body + email_data.html_body,
                 subtype="html"
             )
 

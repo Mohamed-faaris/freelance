@@ -1750,6 +1750,7 @@ export default function FSSAIProfilePage() {
 
       const data = await response.json();
       console.log("Received data:", data);
+      console.log("Received 2data:", data.gstData.data);
 
       // Check if we got any data back
       if (!data.gstData && !data.fssaiData) {

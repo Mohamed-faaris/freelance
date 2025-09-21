@@ -24,12 +24,21 @@ This project implements a microservices architecture with three separate service
    ```
 
 3. **Access the services**
-   - Auth Service: http://localhost:8001
-   - Permissions Service: http://localhost:8002
-   - Services Service: http://localhost:8003
+   - **Main API Gateway**: http://localhost (Port 80)
+   - Individual Services:
+     - Auth Service: http://localhost:8001
+     - Permissions Service: http://localhost:8002
+     - Services Service: http://localhost:8003
    - MongoDB: localhost:27017
 
 ## API Endpoints
+
+### Main API Gateway (Port 80)
+All requests go through nginx reverse proxy:
+
+- `/api/auth/*` → Auth Service (Port 8001)
+- `/api/user/*` → Permissions Service (Port 8002)  
+- `/api/*` → Services Service (Port 8003)
 
 ### Auth Service (Port 8001)
 - `POST /api/auth/` - User login
@@ -42,6 +51,7 @@ This project implements a microservices architecture with three separate service
 - `GET /api/news` - News endpoints
 - `GET /api/states` - States data
 - `POST /api/verification/*` - Various verification services
+- `POST /api/business-verification` - Business compliance verification (GST & FSSAI)
 - `POST /api/fssai-verification` - FSSAI verification
 - And many more business services...
 
@@ -125,6 +135,35 @@ FRONTEND_URL=http://localhost:3000
 ENABLE_ANALYTICS_TRACKING=true
 ```
 
+## Nginx Reverse Proxy
+
+The setup includes an nginx reverse proxy that routes requests to the appropriate microservice:
+
+### Routing Rules
+- `/api/auth/*` → `auth-service:8000`
+- `/api/user/*` → `permissions-service:8000`
+- `/api/*` → `services-service:8000` (catch-all for other API routes)
+
+### Features
+- **Load balancing**: Ready for horizontal scaling
+- **CORS support**: Configured for frontend integration
+- **Security headers**: XSS protection, content security policy
+- **Gzip compression**: Optimized response delivery
+- **Health checks**: `/health` endpoint for monitoring
+
+### Configuration
+The nginx configuration is in `nginx.conf` and includes:
+- Upstream definitions for each microservice
+- Proper proxy headers for request forwarding
+- Timeout and buffer configurations
+- SSL-ready configuration (commented out)
+
+### Testing Configuration
+Run the configuration test script:
+```bash
+./test-config.sh
+```
+
 ## Architecture
 
 ```
@@ -137,6 +176,15 @@ ENABLE_ANALYTICS_TRACKING=true
 └─────────────────┘    └─────────────────────┘    └──────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌─────────────────────┐
+                    │       Nginx         │
+                    │     (Port 80)      │
+                    │                     │
+                    │ • Reverse Proxy     │
+                    │ • Load Balancing   │
+                    │ • API Gateway      │
+                    └─────────────────────┘
                                  │
                     ┌─────────────────────┐
                     │     MongoDB         │

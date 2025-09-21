@@ -36,7 +36,7 @@ servicesMainRouter.include_router(verificationRouter, prefix="", tags=["verifica
 servicesMainRouter.include_router(verificationLiteRouter, prefix="", tags=["verification-lite"])
 servicesMainRouter.include_router(verificationMiniRouter, prefix="", tags=["verification-mini"])
 servicesMainRouter.include_router(verificationBusinessRouter, prefix="", tags=["verification-business"])
-servicesMainRouter.include_router(fssaiVerificationRouter, prefix="/fssai-verification", tags=["fssai-verification"])
+servicesMainRouter.include_router(fssaiVerificationRouter, prefix="/business-verification", tags=["business-verification"])
 servicesMainRouter.include_router(instaFinancialsRouter, prefix="/insta-financials", tags=["insta-financials"])
 servicesMainRouter.include_router(pdfRouter, prefix="", tags=["pdf-generation"])
 servicesMainRouter.include_router(puppeteerPdfRouter, prefix="", tags=["pdf-generation-puppeteer"])

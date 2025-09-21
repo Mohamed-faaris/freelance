@@ -5,6 +5,9 @@ from bson import ObjectId
 from config.db import apiAnalyticsCollection, userCollection
 from models.user import User
 from models.api_analytics import ApiAnalytics
+from services.authService import auth_service
+from utils.api_tracking import track_external_api_call
+from utils.auth import authenticate_request
 import jwt
 import os
 import requests
@@ -82,20 +85,6 @@ class VerificationRequest(BaseModel):
     mobile_number: str
     aadhaar_number: Optional[str] = None
     pan_number: str
-
-def authenticate(request: Request):
-    token = request.cookies.get("auth_token")
-    print("authenticate: checking auth_token cookie")
-    if not token:
-        print("authenticate: no token found in cookies")
-        return None
-    try:
-        decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-        print(f"authenticate: token decoded for id={decoded.get('id')}")
-        return decoded
-    except Exception as e:
-        print(f"authenticate: token decode failed: {e}")
-        return None
 
 async def get_access_token():
     """Get access token from auth service"""
@@ -270,7 +259,7 @@ async def verification_advanced(request: Request, data: VerificationRequest):
 
     try:
         # Authenticate user
-        decoded = authenticate(request)
+        decoded = authenticate_request(request)
         if not decoded:
             print("Authentication failed for verification request")
             raise HTTPException(status_code=401, detail="Authentication required")
@@ -671,7 +660,7 @@ async def fetch_pan_plus(pan_number: str, user_id: str, username: str, user_role
     )
 
 async def _fetch_pan_plus(pan_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V2}/verification/pan-plus?pan_number={pan_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",

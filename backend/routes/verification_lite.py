@@ -5,6 +5,9 @@ from bson import ObjectId
 from config.db import apiAnalyticsCollection, userCollection
 from models.user import User
 from models.api_analytics import ApiAnalytics
+from services.authService import auth_service
+from utils.api_tracking import track_external_api_call
+from utils.auth import authenticate_request
 import jwt
 import os
 import requests
@@ -16,6 +19,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 verificationLiteRouter = APIRouter()
+
+async def _verify_pan_plus(pan_number: str):
+    access_token = await auth_service.get_access_token()
+    url = f"{BASE_URL_V2}/verification/pan-plus?pan_number={pan_number}"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "x-api-key": CLIENT_SECRET,
+    }
+    return await fetch_with_timeout(url, headers)
 
 # Environment variables with validation
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -51,69 +63,11 @@ PRODUCTION_LIMITS = {
     "TOTAL_TIMEOUT": 20000,  # 20 second total timeout
 }
 
-# API cost mapping for lite version
-API_COSTS = {
-    "verification/pan-plus": 4.0,
-    "mobile-intelligence/mobile-to-name": 5.0,
-    "mobile-intelligence/mobile-to-network-details": 5.0,
-    "mobile-intelligence/mobile-to-digital-age": 8.0,
-    "mobile-intelligence/mobile-to-multiple-upi": 3.5,
-    "verification/epfo/pan-to-uan": 5.0,
-    "verification/pan-kra-status": 2.5,
-    "verification/pan-to-fathername": 2.5,
-    "verification/epfo/uan-to-employment-history": 5.0,
-    "verification/gstinlite": 2.5,
-    "verification/gstin-advanced": 5.0,
-    "verification/pan-msme-check": 5.0,
-    "business-compliance/fssai-verification": 3.0,
-    "default": 1.0,
-}
-
 class VerificationLiteRequest(BaseModel):
     name: str
     mobile_number: str
     aadhaar_number: Optional[str] = None
     pan_number: str
-
-def authenticate(request: Request):
-    token = request.cookies.get("auth_token")
-    if not token:
-        return None
-    try:
-        decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-        return decoded
-    except:
-        return None
-
-async def get_access_token():
-    """Get access token from auth service"""
-    try:
-        # Prepare the request to get access token
-        token_url = f"{AUTH_SERVICE_URL}/oauth/token"
-        payload = {
-            "grant_type": "client_credentials",
-            "client_id": AUTH_SERVICE_CLIENT_ID,
-            "client_secret": AUTH_SERVICE_CLIENT_SECRET,
-            "scope": "api"
-        }
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
-
-        # Make the request synchronously in a thread
-        def _get_token():
-            response = requests.post(token_url, data=payload, headers=headers, timeout=10)
-            response.raise_for_status()
-            token_data = response.json()
-            return token_data.get("access_token")
-
-        access_token = await asyncio.to_thread(_get_token)
-        return access_token
-
-    except Exception as error:
-        print(f"Failed to get access token: {error}")
-        # Fallback to a cached token or raise error
-        raise HTTPException(status_code=500, detail="Failed to authenticate with external service")
 
 async def fetch_with_timeout(url: str, headers: dict, timeout: int = PRODUCTION_LIMITS["API_TIMEOUT"]):
     """Fetch with timeout protection using requests in a thread"""
@@ -124,65 +78,6 @@ async def fetch_with_timeout(url: str, headers: dict, timeout: int = PRODUCTION_
 
     return await asyncio.to_thread(_sync_request)
 
-async def track_external_api_call(
-    user_id: str,
-    username: str,
-    user_role: str,
-    service: str,
-    api_function,
-    *args,
-    **kwargs
-):
-    """Track external API calls with analytics"""
-    start_time = datetime.now()
-
-    try:
-        result = await api_function(*args, **kwargs)
-        response_time = (datetime.now() - start_time).total_seconds() * 1000  # Convert to ms
-        cost = API_COSTS.get(service, API_COSTS["default"])
-
-        # Log successful API call if analytics tracking is enabled
-        if ENABLE_ANALYTICS_TRACKING:
-            ApiAnalytics.log_api_call({
-                "userId": ObjectId(user_id),
-                "username": username,
-                "userRole": user_role,
-                "service": service,
-                "endpoint": service,
-                "apiVersion": "v2" if "pan-plus" in service else "v1",
-                "cost": cost,
-                "statusCode": 200,
-                "responseTime": response_time,
-                "profileType": "lite",
-                "requestData": args[0] if args else None,
-                "responseData": result,
-                "businessId": None,
-            })
-
-        return result
-    except Exception as error:
-        response_time = (datetime.now() - start_time).total_seconds() * 1000
-
-        # Log failed API call if analytics tracking is enabled
-        if ENABLE_ANALYTICS_TRACKING:
-            ApiAnalytics.log_api_call({
-                "userId": ObjectId(user_id),
-                "username": username,
-                "userRole": user_role,
-                "service": service,
-                "endpoint": service,
-                "apiVersion": "v2" if "pan-plus" in service else "v1",
-                "cost": API_COSTS.get(service, API_COSTS["default"]),
-                "statusCode": 500,
-                "responseTime": response_time,
-                "profileType": "lite",
-                "requestData": args[0] if args else None,
-                "responseData": {"error": str(error)},
-                "businessId": None,
-            })
-
-        raise error
-
 @verificationLiteRouter.post("/verification-lite")
 async def verification_lite(request: Request, data: VerificationLiteRequest):
     start_time = datetime.now()
@@ -190,7 +85,7 @@ async def verification_lite(request: Request, data: VerificationLiteRequest):
 
     try:
         # Authenticate user
-        decoded = authenticate(request)
+        decoded = authenticate_request(request)
         if not decoded:
             print("Authentication failed for lite verification request")
             raise HTTPException(status_code=401, detail="Authentication required")
@@ -535,7 +430,7 @@ async def fetch_pan_plus(pan_number: str, user_id: str, username: str, user_role
     )
 
 async def _fetch_pan_plus(pan_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V2}/verification/pan-plus?pan_number={pan_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -550,7 +445,7 @@ async def fetch_mobile_to_name(mobile_number: str, user_id: str, username: str, 
     )
 
 async def _fetch_mobile_to_name(mobile_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/mobile-intelligence/mobile-to-name?mobile_number={mobile_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -565,7 +460,7 @@ async def fetch_mobile_network_details(mobile_number: str, user_id: str, usernam
     )
 
 async def _fetch_mobile_network_details(mobile_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/mobile-intelligence/mobile-to-network-details?mobile_number={mobile_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -580,7 +475,7 @@ async def fetch_mobile_to_digital_age(mobile_number: str, user_id: str, username
     )
 
 async def _fetch_mobile_to_digital_age(mobile_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/mobile-intelligence/mobile-to-digital-age?mobile_number={mobile_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -595,7 +490,7 @@ async def fetch_mobile_to_multiple_upi(mobile_number: str, user_id: str, usernam
     )
 
 async def _fetch_mobile_to_multiple_upi(mobile_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/mobile-intelligence/mobile-to-multiple-upi?mobile_number={mobile_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -610,7 +505,7 @@ async def fetch_pan_to_uan(pan_number: str, user_id: str, username: str, user_ro
     )
 
 async def _fetch_pan_to_uan(pan_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/verification/epfo/pan-to-uan?pan_number={pan_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -625,7 +520,7 @@ async def fetch_pan_kra_status(pan_number: str, user_id: str, username: str, use
     )
 
 async def _fetch_pan_kra_status(pan_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/verification/pan-kra-status?pan_number={pan_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -640,7 +535,7 @@ async def fetch_pan_to_father_name(pan_number: str, user_id: str, username: str,
     )
 
 async def _fetch_pan_to_father_name(pan_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/verification/pan-to-fathername?pan_number={pan_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -655,7 +550,7 @@ async def fetch_uan_employment_history(uan_number: str, user_id: str, username: 
     )
 
 async def _fetch_uan_employment_history(uan_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/verification/epfo/uan-to-employment-history?uan_number={uan_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -670,7 +565,7 @@ async def fetch_pan_msme_check(pan_number: str, user_id: str, username: str, use
     )
 
 async def _fetch_pan_msme_check(pan_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V1}/verification/pan-msme-check?pan_number={pan_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",

@@ -5,6 +5,9 @@ from bson import ObjectId
 from config.db import apiAnalyticsCollection, userCollection
 from models.user import User
 from models.api_analytics import ApiAnalytics
+from services.authService import auth_service
+from utils.api_tracking import track_external_api_call
+from utils.auth import authenticate_request
 import jwt
 import os
 import requests
@@ -78,7 +81,6 @@ API_COSTS = {
     "verification/async/post-udyog-details": 5.0,
     "verification/async/get-udyog-details": 1.0,
     "business-compliance/shop-establishment-certificate": 5.0,
-    "default": 1.0,
 }
 
 class VerificationMiniRequest(BaseModel):
@@ -99,46 +101,6 @@ class VerificationMiniRequest(BaseModel):
     ifscCode: Optional[str] = None
     verifications: List[str]
 
-def authenticate(request: Request):
-    token = request.cookies.get("auth_token")
-    if not token:
-        return None
-    try:
-        decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-        return decoded
-    except:
-        return None
-
-async def get_access_token():
-    """Get access token from auth service"""
-    try:
-        # Prepare the request to get access token
-        token_url = f"{AUTH_SERVICE_URL}/oauth/token"
-        payload = {
-            "grant_type": "client_credentials",
-            "client_id": AUTH_SERVICE_CLIENT_ID,
-            "client_secret": AUTH_SERVICE_CLIENT_SECRET,
-            "scope": "api"
-        }
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
-
-        # Make the request synchronously in a thread
-        def _get_token():
-            response = requests.post(token_url, data=payload, headers=headers, timeout=10)
-            response.raise_for_status()
-            token_data = response.json()
-            return token_data.get("access_token")
-
-        access_token = await asyncio.to_thread(_get_token)
-        return access_token
-
-    except Exception as error:
-        print(f"Failed to get access token: {error}")
-        # Fallback to a cached token or raise error
-        raise HTTPException(status_code=500, detail="Failed to authenticate with external service")
-
 async def fetch_with_timeout(url: str, headers: dict, timeout: int = PRODUCTION_LIMITS["API_TIMEOUT"]):
     """Fetch with timeout protection using requests in a thread"""
     def _sync_request():
@@ -156,65 +118,6 @@ async def post_with_timeout(url: str, headers: dict, data: dict = None, timeout:
         return response.json()
 
     return await asyncio.to_thread(_sync_post)
-
-async def track_external_api_call(
-    user_id: str,
-    username: str,
-    user_role: str,
-    service: str,
-    api_function,
-    *args,
-    **kwargs
-):
-    """Track external API calls with analytics"""
-    start_time = datetime.now()
-
-    try:
-        result = await api_function(*args, **kwargs)
-        response_time = (datetime.now() - start_time).total_seconds() * 1000  # Convert to ms
-        cost = API_COSTS.get(service, API_COSTS["default"])
-
-        # Log successful API call if analytics tracking is enabled
-        if ENABLE_ANALYTICS_TRACKING:
-            ApiAnalytics.log_api_call({
-                "userId": ObjectId(user_id),
-                "username": username,
-                "userRole": user_role,
-                "service": service,
-                "endpoint": service,
-                "apiVersion": "v1",
-                "cost": cost,
-                "statusCode": 200,
-                "responseTime": response_time,
-                "profileType": "mini",
-                "requestData": args[0] if args else None,
-                "responseData": result,
-                "businessId": None,
-            })
-
-        return result
-    except Exception as error:
-        response_time = (datetime.now() - start_time).total_seconds() * 1000
-
-        # Log failed API call if analytics tracking is enabled
-        if ENABLE_ANALYTICS_TRACKING:
-            ApiAnalytics.log_api_call({
-                "userId": ObjectId(user_id),
-                "username": username,
-                "userRole": user_role,
-                "service": service,
-                "endpoint": service,
-                "apiVersion": "v1",
-                "cost": API_COSTS.get(service, API_COSTS["default"]),
-                "statusCode": 500,
-                "responseTime": response_time,
-                "profileType": "mini",
-                "requestData": args[0] if args else None,
-                "responseData": {"error": str(error)},
-                "businessId": None,
-            })
-
-        raise error
 
 def format_date_string(date_str: str) -> str:
     """Format date string to YYYY-MM-DD"""
@@ -248,7 +151,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
 
     try:
         # Authenticate user
-        decoded = authenticate(request)
+        decoded = authenticate_request(request)
         if not decoded:
             print("Authentication failed for mini verification request")
             raise HTTPException(status_code=401, detail="Authentication required")
@@ -1216,7 +1119,7 @@ async def verify_aadhaar(
     )
 
 async def _verify_aadhaar(aadhaar_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/verification/aadhaar?aadhaar_number={aadhaar_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1237,7 +1140,7 @@ async def verify_pan(
     )
 
 async def _verify_pan(pan_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/verification/panbasic?pan_number={pan_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1259,7 +1162,7 @@ async def initiate_dl_verification(
     )
 
 async def _initiate_dl_verification(dl_number: str, dob: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/verification/post-driving-license?dl_number={dl_number}&dob={dob}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1281,7 +1184,7 @@ async def poll_dl_verification(
     )
 
 async def _poll_dl_verification(request_id: str, max_attempts: int):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/verification/get-driving-license?request_id={request_id}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1313,7 +1216,7 @@ async def verify_rc_advanced(
     )
 
 async def _verify_rc_advanced(rc_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/verification/rc-advanced?rc_number={rc_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",

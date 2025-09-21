@@ -352,7 +352,11 @@ export default function BusinessProfilePage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(createBusinessEmailData(null, businessData)),
+        body: JSON.stringify({
+          fileName: `business-verification-${businessData.business_name?.replace(/\s+/g, "-") || "report"}.pdf`,
+          businessName: businessData?.business_name || "",
+          businessInfo: createBusinessInfo(businessData),
+        }),
       });
 
       if (!response.ok) {

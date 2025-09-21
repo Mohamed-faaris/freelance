@@ -16,6 +16,7 @@ from .pdf_generation import pdfRouter
 from .pdf_generation_puppeteer import router as puppeteerPdfRouter
 from .send_business_email import router as sendBusinessEmailRouter
 from .send_profile_email import router as sendProfileEmailRouter
+from .send_fssai_email import router as sendFssaiEmailRouter
 
 from .user.permissions import permissionsRoute
 

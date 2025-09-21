@@ -289,6 +289,10 @@ async def send_test_email(to_email: EmailStr) -> bool:
     """Send a test email"""
     return await mail_service.send_test_email(to_email)
 
+async def send_business_verification_email(email_data: dict) -> bool:
+    """Send business verification email with GST and FSSAI data"""
+    return await mail_service.send_business_verification_email(email_data)
+
 async def test_mail_service() -> bool:
     """Test mail service connection"""
     if not MailConfig.FROM_EMAIL:

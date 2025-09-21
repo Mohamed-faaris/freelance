@@ -11,18 +11,14 @@ from config.db import userCollection, apiAnalyticsCollection
 from models.user import User
 from models.api_analytics import ApiAnalytics
 from services.authService import auth_service
+from utils.auth import authenticate_request
+from utils.api_tracking import track_external_api_call
 
 router = APIRouter()
 
 JWT_SECRET = os.getenv("JWT_SECRET")
 BASE_URL = "https://production.deepvue.tech/v1"
 ENABLE_ANALYTICS_TRACKING = os.getenv("ENABLE_ANALYTICS_TRACKING", "true").lower() == "true"
-
-# API cost mapping
-API_COSTS: Dict[str, float] = {
-    "business-compliance/fssai-verification": 3.0,
-    "default": 1.0,
-}
 
 # FSSAI service configuration
 FSSAI_SERVICE = {
@@ -35,80 +31,10 @@ FSSAI_SERVICE = {
     "paramKey": "fssai_id",
 }
 
-def authenticate(request: Request):
-    token = request.cookies.get("auth_token")
-    if not token:
-        return None
-    try:
-        decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-        return decoded
-    except:
-        return None
-
-# Tracker function for external API calls
-async def track_external_api_call(
-    user_id: str,
-    username: str,
-    user_role: str,
-    service: str,
-    api_function,
-    *args,
-    **kwargs
-):
-    """Track external API calls with analytics"""
-    start_time = datetime.now()
-
-    try:
-        result = await api_function(*args, **kwargs)
-        response_time = (datetime.now() - start_time).total_seconds() * 1000  # Convert to ms
-        cost = API_COSTS.get(service, API_COSTS["default"])
-
-        # Log successful API call if analytics tracking is enabled
-        if ENABLE_ANALYTICS_TRACKING:
-            await ApiAnalytics.log_api_call({
-                "userId": ObjectId(user_id),
-                "username": username,
-                "userRole": user_role,
-                "service": service,
-                "endpoint": service,
-                "apiVersion": "v1",
-                "cost": cost,
-                "statusCode": 200,
-                "responseTime": response_time,
-                "profileType": "business",
-                "requestData": {"fssai_id": args[0]} if args else None,
-                "responseData": result,
-                "businessId": None,
-            })
-
-        return result
-    except Exception as error:
-        response_time = (datetime.now() - start_time).total_seconds() * 1000
-
-        # Log failed API call if analytics tracking is enabled
-        if ENABLE_ANALYTICS_TRACKING:
-            await ApiAnalytics.log_api_call({
-                "userId": ObjectId(user_id),
-                "username": username,
-                "userRole": user_role,
-                "service": service,
-                "endpoint": service,
-                "apiVersion": "v1",
-                "cost": API_COSTS.get(service, API_COSTS["default"]),
-                "statusCode": 500,
-                "responseTime": response_time,
-                "profileType": "business",
-                "requestData": {"fssai_id": args[0]} if args else None,
-                "responseData": {"error": str(error)},
-                "businessId": None,
-            })
-
-        raise error
-
 # GET endpoint to fetch FSSAI service details
 @router.get("/")
 async def get_fssai_service(request: Request):
-    user = authenticate(request)
+    user = authenticate_request(request)
 
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -118,7 +44,7 @@ async def get_fssai_service(request: Request):
 # POST endpoint for FSSAI verification
 @router.post("/")
 async def post_fssai_verification(request: Request, data: Dict[str, Any]):
-    user = authenticate(request)
+    user = authenticate_request(request)
 
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")

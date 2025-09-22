@@ -31,8 +31,6 @@ cd frontend
 pnpm dev
 ```
 
-
-
 ### Production Build
 
 **Single Server Build:**
@@ -74,7 +72,6 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-
 **Services:**
 
 - **Main Application (Nginx)**: http://localhost (Port 80) - Serves frontend and proxies API requests
@@ -112,6 +109,3 @@ The application uses JWT tokens for authentication. Users can have different rol
 - **User Management**: Create, update, delete users
 - **API Analytics**: Monitor API usage and performance
 - **News Management**: Content management system
-
-
-

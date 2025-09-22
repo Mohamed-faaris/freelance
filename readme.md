@@ -2,14 +2,14 @@
 
 A full-stack application with React frontend and FastAPI backend microservices for identity verification and business services.
 
-## 🏗️ Architecture
+## Architecture
 
 - **Frontend**: React + TypeScript + Vite
 - **Backend**: FastAPI microservices (Auth, Permissions, Services)
 - **Database**: MongoDB
 - **Reverse Proxy**: Nginx
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -31,25 +31,7 @@ cd frontend
 pnpm dev
 ```
 
-**Microservices Setup:**
 
-```bash
-# Auth Service
-cd backend
-python -m uvicorn microServices.authMicrosService:app --host 0.0.0.0 --port 8001 --reload
-
-# Permissions Service (in new terminal)
-cd backend
-python -m uvicorn microServices.permissionsMicrosService:app --host 0.0.0.0 --port 8002 --reload
-
-# Services Service (in new terminal)
-cd backend
-python -m uvicorn microServices.servicesMicrosService:app --host 0.0.0.0 --port 8003 --reload
-
-# Frontend (in new terminal)
-cd frontend
-pnpm dev
-```
 
 ### Production Build
 
@@ -92,17 +74,6 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### Docker Deployment (Recommended)
-
-```bash
-cd backend
-
-# Start all services
-docker-compose up --build
-
-# Or run in background
-docker-compose up -d --build
-```
 
 **Services:**
 
@@ -113,13 +84,13 @@ docker-compose up -d --build
 - **Services Service**: http://localhost:8003
 - **MongoDB**: localhost:27017
 
-## 📚 API Documentation
+## API Documentation
 
 Once the backend is running, visit:
 
 - **Swagger UI**: http://localhost:8000/docs
 
-## 🔐 Authentication
+## Authentication
 
 The application uses JWT tokens for authentication. Users can have different roles:
 
@@ -127,7 +98,7 @@ The application uses JWT tokens for authentication. Users can have different rol
 - **admin**: Access to user management and administrative features
 - **user**: Standard user with permission-based access
 
-## 🏢 Services
+## Services
 
 ### Verification Services
 
@@ -142,14 +113,5 @@ The application uses JWT tokens for authentication. Users can have different rol
 - **API Analytics**: Monitor API usage and performance
 - **News Management**: Content management system
 
-## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
 
-## 📄 License
-
-This project is licensed under the MIT License.

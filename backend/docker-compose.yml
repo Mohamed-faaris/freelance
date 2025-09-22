@@ -12,6 +12,7 @@ services:
       - auth-service
       - permissions-service
       - services-service
+      - frontend
     networks:
       - backend-network
 
@@ -63,6 +64,20 @@ services:
     command: python -m uvicorn microServices.servicesMicrosService:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       - mongodb
+    networks:
+      - backend-network
+
+  # Frontend React Application - Port 5173
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0
     networks:
       - backend-network
 

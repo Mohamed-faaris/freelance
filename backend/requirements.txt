@@ -16,7 +16,7 @@ fastapi==0.116.1
 fastapi-cli==0.0.11
 fastapi-cloud-cli==0.1.5
 fastapi-mail==1.5.0
-fonttools==4.60.0
+fonttools>=4.50.0
 fuzzywuzzy==0.18.0
 h11==0.16.0
 httpcore==1.0.9
@@ -31,7 +31,7 @@ MarkupSafe==3.0.2
 mdurl==0.1.2
 motor==3.7.1
 numpy==1.26.4
-opencv-python==4.12.0.88
+opencv-python<4.10
 packaging==25.0
 pillow==11.3.0
 pycparser==2.23

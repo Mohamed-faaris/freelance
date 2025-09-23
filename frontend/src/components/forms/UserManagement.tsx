@@ -48,7 +48,7 @@ type TabId = "users" | "activity" | "settings";
 
 export default function UserManagement() {
   const { darkMode } = useTheme();
-  const { user } = useAuth();
+  const { user: loggedInUser } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("users");
   const [users, setUsers] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
@@ -182,7 +182,7 @@ export default function UserManagement() {
 
   useEffect(() => {
     const fetchAdminUsers = async () => {
-      if (user?.role !== "superadmin") return;
+      if (loggedInUser?.role !== "superadmin") return;
 
       try {
         const response = await fetch(`${API_URL}/users?role=admin`, {
@@ -200,7 +200,7 @@ export default function UserManagement() {
     };
 
     fetchAdminUsers();
-  }, [user?.role]);
+  }, [loggedInUser?.role]);
 
   const updateUserPermission = (
     resource: string,
@@ -268,7 +268,7 @@ export default function UserManagement() {
         body: JSON.stringify({
           userId: selectedAdminUser._id,
           permissions: selectedAdminUser.permissions,
-          updatedBy: user?.id,
+          updatedBy: loggedInUser?.id,
         }),
       });
       if (!response.ok) {
@@ -298,7 +298,7 @@ export default function UserManagement() {
 
   useEffect(() => {
     const fetchPermissions = async () => {
-      if (user?.role !== "superadmin") return;
+      if (loggedInUser?.role !== "superadmin") return;
 
       try {
         const response = await fetch(`${API_URL}/users/permissions?role=admin`);
@@ -319,7 +319,7 @@ export default function UserManagement() {
     };
 
     fetchPermissions();
-  }, [user?.role]);
+  }, [loggedInUser?.role]);
 
   // Function to handle sorting
   const handleSort = (field: string) => {
@@ -539,10 +539,10 @@ export default function UserManagement() {
   // Check if user has required role
   const hasRole = (requiredRole?: string): boolean => {
     if (!requiredRole) return true;
-    if (!user?.role) return false;
+    if (!loggedInUser?.role) return false;
 
     if (requiredRole === "superadmin") {
-      return user.role === "superadmin";
+      return loggedInUser.role === "superadmin";
     }
 
     return true;
@@ -991,8 +991,8 @@ export default function UserManagement() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-3">
                           {/* Access Control button only for admin users when user is superadmin */}
-                          {user.role !== "superadmin" &&
-                            hasRole("superadmin") && (
+                          {loggedInUser?.role === "superadmin" &&
+                            user.role !== "superadmin" && (
                               <button
                                 onClick={() => openAccessControlModal(user)}
                                 className={`p-2 rounded-full ${
@@ -1005,18 +1005,28 @@ export default function UserManagement() {
                                 <KeyRound size={16} />
                               </button>
                             )}
-                          <button
-                            onClick={() => openEditModal(user)}
-                            className={`p-2 rounded-full ${
-                              darkMode
-                                ? "hover:bg-gray-700 text-blue-300"
-                                : "hover:bg-blue-100 text-blue-600"
-                            } transition-colors duration-200`}
-                            title="Edit"
-                          >
-                            <Edit size={16} />
-                          </button>
-                          {user.role !== "superadmin" && (
+                          {/* Edit Button */}
+                          {(loggedInUser?.role === "superadmin" &&
+                            user.role !== "superadmin") ||
+                          (loggedInUser?.role === "admin" &&
+                            user.role === "user") ? (
+                            <button
+                              onClick={() => openEditModal(user)}
+                              className={`p-2 rounded-full ${
+                                darkMode
+                                  ? "hover:bg-gray-700 text-blue-300"
+                                  : "hover:bg-blue-100 text-blue-600"
+                              } transition-colors duration-200`}
+                              title="Edit"
+                            >
+                              <Edit size={16} />
+                            </button>
+                          ) : null}
+                          {/* Delete Button */}
+                          {(loggedInUser?.role === "superadmin" &&
+                            user.role !== "superadmin") ||
+                          (loggedInUser?.role === "admin" &&
+                            user.role === "user") ? (
                             <button
                               onClick={() => openDeleteModal(user)}
                               className={`p-2 rounded-full ${
@@ -1028,7 +1038,7 @@ export default function UserManagement() {
                             >
                               <Trash2 size={16} />
                             </button>
-                          )}
+                          ) : null}
                         </div>
                       </td>
                     </tr>
@@ -1687,9 +1697,13 @@ export default function UserManagement() {
                                 : "border-gray-300 text-gray-900"
                             } focus:border-blue-500 focus:ring-blue-500`}
                           >
-                            <option value="admin">Admin</option>
-                            <option value="superadmin">Super Admin</option>
                             <option value="user">User</option>
+                            {loggedInUser?.role === "superadmin" && (
+                              <>
+                                <option value="admin">Admin</option>
+                                <option value="superadmin">Super Admin</option>
+                              </>
+                            )}
                           </select>
                         </div>
                       </div>
@@ -1928,9 +1942,13 @@ export default function UserManagement() {
                                 : "border-gray-300 text-gray-900"
                             } focus:border-blue-500 focus:ring-blue-500`}
                           >
-                            <option value="admin">Admin</option>
-                            <option value="superadmin">Super Admin</option>
                             <option value="user">User</option>
+                            {loggedInUser?.role === "superadmin" && (
+                              <>
+                                <option value="admin">Admin</option>
+                                <option value="superadmin">Super Admin</option>
+                              </>
+                            )}
                           </select>
                         </div>
                       </div>

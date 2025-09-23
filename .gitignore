@@ -131,3 +131,5 @@ dmypy.json
 cython_debug/
 
 backend/config/__pycache__/db.cpython-312.pyc
+
+node_modules

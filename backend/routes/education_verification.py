@@ -22,7 +22,7 @@ async def education_verification(file: UploadFile = File(...)):
     if not CERTIFICATE_VALIDATOR_AVAILABLE:
         raise HTTPException(
             status_code=503,
-            detail="Certificate validation service is not available. Required dependencies may not be installed."
+            detail="Not Valid!"
         )
 
     # Validate file type

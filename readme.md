@@ -1,4 +1,4 @@
-# Freelance Project
+# Argus Project
 
 A full-stack application with React frontend and FastAPI backend microservices for identity verification and business services.
 
@@ -22,12 +22,27 @@ A full-stack application with React frontend and FastAPI backend microservices f
 **Single Server Setup:**
 
 ```bash
-# Backend
-cd backend
+# Install pnpm globally
+npm install -g pnpm
+
+# Install dependencies for frontend
+npm run install-both
+sudo apt install pytesseract
+
+
+# Run MongoDB (assuming local installation)
+mongod
+
+# Modify .env file (set VITE_API_URL for frontend)
+cd ../frontend
+echo "VITE_API_URL=http://localhost:8000" > .env
+
+# Backend (in new terminal)
+cd ../backend
 python -m uvicorn index:app --host 0.0.0.0 --port 8000 --reload
 
 # Frontend (in new terminal)
-cd frontend
+cd ../frontend
 pnpm dev
 ```
 

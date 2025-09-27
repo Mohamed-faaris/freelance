@@ -55,9 +55,7 @@ async def get_business_services(request: Request):
 # POST endpoint for business verification services
 @router.post("/")
 async def post_business_verification(request: Request, data: Dict[str, Any]):
-    print("Business Verification Request Data: " + str(data))
     user = authenticate_request(request)
-    print("Auth token:", request.cookies.get("auth_token"))
 
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -66,13 +64,12 @@ async def post_business_verification(request: Request, data: Dict[str, Any]):
         # Get user details
         user_id = user["id"]
         user_doc = await userCollection.find_one({"_id": ObjectId(user_id)})
-        print("User:", str(user_doc))
 
         if not user_doc:
             raise HTTPException(status_code=401, detail="User not found")
 
         gstin = data.get("gstin")
-        fssai_id = data.get("fssai_id")
+        fssai_id = data.get("fssai_id") or data.get("fssaiId")  # Support both snake_case and camelCase
 
         # Validate that at least one parameter is provided
         if not gstin and not fssai_id:
@@ -93,7 +90,6 @@ async def post_business_verification(request: Request, data: Dict[str, Any]):
                 )
                 result["gstData"] = gst_data["data"]
             except Exception as error:
-                print(f"GST verification failed: {error}")
                 errors["gstError"] = str(error)
 
         # Fetch FSSAI data if FSSAI ID is provided
@@ -107,7 +103,6 @@ async def post_business_verification(request: Request, data: Dict[str, Any]):
                 )
                 result["fssaiData"] = fssai_data["data"]
             except Exception as error:
-                print(f"FSSAI verification failed: {error}")
                 errors["fssaiError"] = str(error)
 
         # Check if we got any successful results
@@ -132,7 +127,6 @@ async def post_business_verification(request: Request, data: Dict[str, Any]):
         raise
     except Exception as error:
         error_message = str(error)
-        print(f"Business Verification API Error: {error}")
         raise HTTPException(status_code=500, detail=error_message)
 
 async def fetch_gst_basic(
@@ -192,7 +186,6 @@ async def _verify_fssai(fssai_num: str):
 
     def _make_request():
         response = requests.get(url, headers=headers, timeout=30)
-        print(f"FSSAI API Response Status: {response.status_code}")
         response.raise_for_status()
         return response.json()
 

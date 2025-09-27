@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "seed": "cd backend && python seeder.py",
     "dev": "concurrently \"cd backend && uvicorn index:app --reload \" \"cd frontend && pnpm dev\"",
     "dev-frontend": "cd frontend && pnpm dev",
     "dev-backend": "cd backend && uvicorn index:app --reload",

@@ -2214,7 +2214,7 @@ const PersonalMiniVerificationTab: React.FC = () => {
                 {renderVerificationStatus("verified")}
               </div>
               <CourtCaseResult
-                profileData={{
+                profile={{
                   personalInfo: {
                     fullName: verificationResults.personalInfo.name,
                     dateOfBirth: verificationResults.personalInfo.dob,

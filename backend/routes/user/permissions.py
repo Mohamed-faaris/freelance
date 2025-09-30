@@ -15,18 +15,28 @@ async def get_permissions(
     try:
         # If a specific user is requested, return their permissions
         if userId:
-            user = await find_user_by_id(userId)
+            user = await find_user_by_id(int(userId))
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
-            return PermissionResponse(permissions=user.get("permissions", []))
+            
+            # Handle permissions - could be JSON string or list
+            permissions = user.get("permissions", [])
+            if isinstance(permissions, str):
+                import json
+                try:
+                    permissions = json.loads(permissions)
+                except (json.JSONDecodeError, TypeError):
+                    permissions = []
+            
+            return PermissionResponse(permissions=permissions)
 
         # Fallback to role-based permissions if no user specified
         print("fallback to role-based permissions")
         query = {}
         if role:
             query["role"] = role
-        if resource:
-            query["permissions.resource"] = resource
+        # Note: PostgreSQL doesn't support MongoDB-style nested queries
+        # We'll filter by resource after fetching the data
 
         # Get users matching the query
         users = await find_users_by_query(query)
@@ -35,10 +45,17 @@ async def get_permissions(
         all_permissions = []
         for user in users:
             user_perms = user.get("permissions", [])
+            if isinstance(user_perms, str):
+                import json
+                try:
+                    user_perms = json.loads(user_perms)
+                except (json.JSONDecodeError, TypeError):
+                    user_perms = []
+            
             for perm in user_perms:
                 if not resource or perm.get("resource") == resource:
                     all_permissions.append({
-                        "userId": str(user["_id"]),
+                        "userId": str(user["id"]),
                         "username": user.get("username"),
                         "role": user.get("role"),
                         **perm
@@ -60,7 +77,7 @@ async def update_permissions(request: UpdatePermissionsRequest):
 
         
         # Update user permissions
-        updated_user = await update_user_permissions(request.userId, request.permissions)
+        updated_user = await update_user_permissions(int(request.userId), request.permissions)
 
         if not updated_user:
             raise HTTPException(status_code=404, detail="User not found")

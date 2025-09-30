@@ -13,6 +13,7 @@ class User(BaseModel):
     password: str = Field(..., min_length=8)
     role: Literal["admin", "superadmin", "user"] = "user"
     permissions: List[UserPermission] = Field(default_factory=lambda: [UserPermission(resource="news", actions=["view"])])
+    roleResources: int = Field(default=0, ge=0, le=4095, description="12-bit field for role resources (0-4095)")
     createdAt: Optional[datetime] = None
     updatedAt: Optional[datetime] = None
 
@@ -45,6 +46,7 @@ class UserUpdate(BaseModel):
     password: Optional[str] = Field(None, min_length=8)
     role: Optional[Literal["admin", "superadmin", "user"]] = None
     permissions: Optional[List[UserPermission]] = None
+    roleResources: Optional[int] = Field(None, ge=0, le=4095, description="12-bit field for role resources (0-4095)")
 
     model_config = ConfigDict(
         from_attributes=True

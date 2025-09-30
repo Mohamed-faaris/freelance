@@ -24,3 +24,16 @@ app.add_middleware(
 )
 
 app.include_router(mainRouter, prefix="/api")
+
+# Database connection management
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database connection pool on startup."""
+    from config.db import init_db
+    await init_db()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Close database connection pool on shutdown."""
+    from config.db import close_db
+    await close_db()

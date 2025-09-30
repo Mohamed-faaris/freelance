@@ -64,6 +64,7 @@ async def create_tables():
                 password VARCHAR(255) NOT NULL,
                 role VARCHAR(50) DEFAULT 'user',
                 permissions JSONB DEFAULT '[]',
+                role_resources INTEGER DEFAULT 0 CHECK (role_resources >= 0 AND role_resources <= 4095),
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
@@ -95,5 +96,15 @@ async def create_tables():
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_analytics_user_id ON api_analytics(user_id)')
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON api_analytics(created_at)')
         await conn.execute('CREATE INDEX IF NOT EXISTS idx_analytics_service ON api_analytics(service)')
+        
+        # Add roleResources column if it doesn't exist (migration for existing tables)
+        try:
+            await conn.execute('''
+                ALTER TABLE users 
+                ADD COLUMN IF NOT EXISTS role_resources INTEGER DEFAULT 0 
+                CHECK (role_resources >= 0 AND role_resources <= 4095)
+            ''')
+        except Exception as e:
+            print(f"Note: roleResources column might already exist: {e}")
         
         print("Database tables created successfully!")

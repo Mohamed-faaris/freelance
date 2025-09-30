@@ -45,7 +45,7 @@ async def get_authenticated_user(request: Request) -> Dict[str, Any]:
         HTTPException: If user is not authenticated or not found
     """
     user = authenticate_request(request)
-
+    # print(f"Authenticated user from token: {user}")
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
@@ -53,7 +53,8 @@ async def get_authenticated_user(request: Request) -> Dict[str, Any]:
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    user_doc = await find_user_by_id(user_id)
+    user_doc = await find_user_by_id(int(user_id))
+    # print(f"User document fetched: {user_doc}")
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
 

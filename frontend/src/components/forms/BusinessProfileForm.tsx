@@ -2563,7 +2563,7 @@ export default function BusinessProfilePage() {
                     darkMode ? "text-white" : "text-gray-800"
                   }`}
                 >
-                  Business Verification
+                  Company Verification
                 </h2>
               </div>
 
@@ -2574,36 +2574,36 @@ export default function BusinessProfilePage() {
                 }`}
               >
                 {/* Service Switcher */}
-                <div className="mb-4">
-                  <div className="flex space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => setActiveService("gstin")}
-                      className={`px-3 py-2 text-sm rounded-md ${
-                        activeService === "gstin"
-                          ? "bg-blue-600 text-white"
-                          : darkMode
-                          ? "bg-gray-700 text-gray-300"
-                          : "bg-gray-200 text-gray-700"
-                      }`}
-                    >
-                      Company Verification
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveService("cin")}
-                      className={`px-3 py-2 text-sm rounded-md ${
-                        activeService === "cin"
-                          ? "bg-blue-600 text-white"
-                          : darkMode
-                          ? "bg-gray-700 text-gray-300"
-                          : "bg-gray-200 text-gray-700"
-                      }`}
-                    >
-                      Company Due Diligence Report
-                    </button>
-                  </div>
-                </div>
+                    {/* <div className="mb-4">
+                      <div className="flex space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => setActiveService("gstin")}
+                          className={`px-3 py-2 text-sm rounded-md ${
+                            activeService === "gstin"
+                              ? "bg-blue-600 text-white"
+                              : darkMode
+                              ? "bg-gray-700 text-gray-300"
+                              : "bg-gray-200 text-gray-700"
+                          }`}
+                        >
+                          Company Verification
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveService("cin")}
+                          className={`px-3 py-2 text-sm rounded-md ${
+                            activeService === "cin"
+                              ? "bg-blue-600 text-white"
+                              : darkMode
+                              ? "bg-gray-700 text-gray-300"
+                              : "bg-gray-200 text-gray-700"
+                          }`}
+                        >
+                          Company Due Diligence Report
+                        </button>
+                      </div>
+                    </div> */}
 
                 {/* GSTIN Form */}
                 {activeService === "gstin" && (

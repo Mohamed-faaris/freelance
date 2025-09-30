@@ -19,34 +19,26 @@ async def get_permissions(
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             
-            # Permissions are now always a list from add_computed_fields_to_user_row
             permissions = user.get("permissions", [])
-            
             return PermissionResponse(permissions=permissions)
 
         # Fallback to role-based permissions if no user specified
-        print("fallback to role-based permissions")
-        
-        # Get all users since we can't query by computed "role" field directly
         users = await find_all_users()
-        # print(f"Total users fetched: {users}")
-        # Filter users by role if specified, and extract permissions
         all_permissions = []
-        # for user in users:
-        #     # Skip users that don't match the role filter
-        #     if role and user.get("role") != role:
-        #         continue
-                
-        #     user_perms = user.get("permissions", [])
-            
-        #     for perm in user_perms:
-        #         if not resource or perm.get("resource") == resource:
-        #             all_permissions.append({
-        #                 "userId": str(user["id"]),
-        #                 "username": user.get("username"),
-        #                 "role": user.get("role"),
-        #                 **perm
-        #             })
+        for user in users:
+            if role and user.get("role") != role:
+                continue
+
+            for perm in user.get("permissions", []):
+                if resource and perm.get("resource") != resource:
+                    continue
+
+                all_permissions.append({
+                    "userId": str(user["id"]),
+                    "username": user.get("username"),
+                    "role": user.get("role"),
+                    **perm,
+                })
 
         return PermissionResponse(permissions=all_permissions)
 

@@ -22,7 +22,8 @@ def add_computed_fields_to_user_row(row: Dict[str, Any]) -> Dict[str, Any]:
         User row with computed permissions and role fields added
     """
     role_resources = row.get("role_resources", 0)
-    row["permissions"] = permissions_from_int_with_admin(role_resources)
+    permissions_data = permissions_from_int_with_admin(role_resources)
+    row["permissions"] = permissions_data.get("permissions", [])
     row["role"] = get_role_from_bits(role_resources)
     return row
 
@@ -163,9 +164,8 @@ async def create_user(user_data: Dict[str, Any]) -> Dict[str, Any]:
             user_data.pop("permissions", [])
         )
     
-    # Handle roleResources field - can come from either roleResources or role_resources
-    if "roleResources" in user_data:
-        role_resources = user_data.get("roleResources", user_data.get("role_resources", 0))
+    # Ensure role_resources is initialized
+    role_resources = user_data.get("roleResources", user_data.get("role_resources", 0))
     
     pool = await get_db_pool()
     async with pool.acquire() as conn:

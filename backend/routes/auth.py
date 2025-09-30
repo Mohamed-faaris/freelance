@@ -1,4 +1,3 @@
-
 from math import e
 from fastapi import APIRouter, HTTPException, Response, Request
 from pydantic import BaseModel
@@ -74,7 +73,6 @@ async def get_current_user(request: Request):
     try:
         # Get token from cookie
         token = request.cookies.get("auth_token")
-
         if not token:
             raise HTTPException(status_code=401, detail="Not authenticated")
 
@@ -93,21 +91,21 @@ async def get_current_user(request: Request):
             raise HTTPException(status_code=404, detail="User not found")
 
         return {
-            "user": {
-                "_id": str(user_doc["id"]),  # Keep for backwards compatibility
+            "user": { 
                 "id": str(user_doc["id"]),
                 "username": user_doc["username"],
                 "email": user_doc["email"],
-                "role": user_doc["role"],
+                "role": user_doc.get("role", "user"),
                 "permissions": user_doc.get("permissions", []),
-                "createdAt": user_doc["createdAt"],
+                "createdAt": user_doc["created_at"],
             },
         }
 
     except HTTPException:
         raise
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as ex:
+        print(f"Get current user error: {type(ex).__name__}: {ex}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @authRouter.delete("/")
 async def logout(response: Response):

@@ -956,7 +956,7 @@ const ApiAnalytics = () => {
                     Total API Calls
                   </p>
                   <h3 className="text-2xl font-bold mt-4">
-                    {analyticsData?.overview.totalCalls.toLocaleString() || 0}
+                    {analyticsData?.overview?.totalCalls?.toLocaleString() || 0}
                   </h3>
                 </div>
                 <div
@@ -988,7 +988,7 @@ const ApiAnalytics = () => {
                     Total Cost
                   </p>
                   <h3 className="text-2xl font-bold mt-4">
-                    ₹{analyticsData?.overview.totalCost.toFixed(2) || "0.00"}
+                    ₹{analyticsData?.overview?.totalCost?.toFixed(2) || "0.00"}
                   </h3>
                 </div>
                 <div

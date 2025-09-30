@@ -26,7 +26,7 @@ async def authenticate_user_by_email(email: str) -> Optional[Dict[str, Any]]:
         pool = await get_db_pool()
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT id, username, email, password, created_at, updated_at FROM users WHERE email = $1",
+                "SELECT id, username, email, password, role_resources, created_at, updated_at FROM users WHERE email = $1",
                 email
             )
             
@@ -52,10 +52,11 @@ async def get_user_for_token_validation(user_id: int) -> Optional[Dict[str, Any]
         pool = await get_db_pool()
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT id, username, email, password, created_at, updated_at FROM users WHERE id = $1",
+                "SELECT id, username, email, password, created_at, role_resources, updated_at FROM users WHERE id = $1",
                 user_id
             )
             if row:
+                # print("User row fetched for token validation:", add_computed_fields_to_user_row(dict(row)))
                 return add_computed_fields_to_user_row(dict(row))
             return None
     except Exception:

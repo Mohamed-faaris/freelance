@@ -60,7 +60,6 @@ async def login(request: LoginRequest, response: Response):
             "success": True,
             "user": {
                 "id": str(user_doc["id"]),
-                "_id": str(user_doc["id"]),  # Keep for backwards compatibility
                 "email": user_doc["email"],
                 "username": user_doc["username"],
                 "role": user_doc["role"],

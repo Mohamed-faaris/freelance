@@ -3,25 +3,13 @@ from typing import List, Optional
 
 # Serialization for new User model
 def userEntity(item) -> dict:
-    import json
     from utils.dbCalls.user_db import permissions_from_int_with_admin, get_role_from_bits
     
-    # Prioritize role_resources over permissions field
+    # Use role_resources to generate permissions and role
     role_resources = item.get("role_resources", 0)
-    if role_resources:
-        # Use role_resources to generate permissions and role
-        permissions_data = permissions_from_int_with_admin(role_resources)
-        permissions = permissions_data["permissions"]
-        role = get_role_from_bits(role_resources)
-    else:
-        # Handle permissions - could be JSON string or list (fallback)
-        permissions = item.get("permissions", [])
-        if isinstance(permissions, str):
-            try:
-                permissions = json.loads(permissions)
-            except (json.JSONDecodeError, TypeError):
-                permissions = []
-        role = item.get("role", "user")
+    permissions_data = permissions_from_int_with_admin(role_resources)
+    permissions = permissions_data["permissions"]
+    role = get_role_from_bits(role_resources)
     
     return {
         "id": str(item["id"]),
@@ -29,14 +17,14 @@ def userEntity(item) -> dict:
         "username": item.get("username"),
         "email": item.get("email"),
         "password": item.get("password"),
-        "role": role,
+        "role": role,  # Computed from roleResources
         "permissions": [
             {
                 "resource": perm.get("resource"),
                 "actions": perm.get("actions", ["view"])
             } for perm in permissions
         ],
-        "roleResources": item.get("role_resources", 0),
+        "roleResources": role_resources,
         "createdAt": item.get("created_at") or item.get("createdAt"),
         "updatedAt": item.get("updated_at") or item.get("updatedAt"),
     }

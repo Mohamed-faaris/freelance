@@ -62,8 +62,6 @@ async def create_tables():
                 username VARCHAR(255) UNIQUE NOT NULL,
                 email VARCHAR(255) UNIQUE NOT NULL,
                 password VARCHAR(255) NOT NULL,
-                role VARCHAR(50) DEFAULT 'user',
-                permissions JSONB DEFAULT '[]',
                 role_resources INTEGER DEFAULT 0 CHECK (role_resources >= 0 AND role_resources <= 4095),
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -106,5 +104,13 @@ async def create_tables():
             ''')
         except Exception as e:
             print(f"Note: roleResources column might already exist: {e}")
+        
+        # Remove old role and permissions columns (migration)
+        try:
+            await conn.execute('ALTER TABLE users DROP COLUMN IF EXISTS role')
+            await conn.execute('ALTER TABLE users DROP COLUMN IF EXISTS permissions')
+            print("Removed old role and permissions columns")
+        except Exception as e:
+            print(f"Note: Old columns might already be removed: {e}")
         
         print("Database tables created successfully!")

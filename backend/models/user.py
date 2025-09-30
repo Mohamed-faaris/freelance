@@ -11,11 +11,23 @@ class User(BaseModel):
     username: str = Field(..., min_length=1, strip_whitespace=True)
     email: EmailStr
     password: str = Field(..., min_length=8)
-    role: Literal["admin", "superadmin", "user"] = "user"
-    permissions: List[UserPermission] = Field(default_factory=lambda: [UserPermission(resource="news", actions=["view"])])
     roleResources: int = Field(default=0, ge=0, le=4095, description="12-bit field for role resources (0-4095)")
     createdAt: Optional[datetime] = None
     updatedAt: Optional[datetime] = None
+    
+    # Computed properties derived from roleResources
+    @property
+    def role(self) -> str:
+        """Get role from roleResources bitfield."""
+        from utils.dbCalls.user_db import get_role_from_bits
+        return get_role_from_bits(self.roleResources)
+    
+    @property
+    def permissions(self) -> List[UserPermission]:
+        """Get permissions from roleResources bitfield."""
+        from utils.dbCalls.user_db import permissions_from_int_with_admin
+        permissions_data = permissions_from_int_with_admin(self.roleResources)
+        return [UserPermission(**perm) for perm in permissions_data["permissions"]]
 
     model_config = ConfigDict(
         from_attributes=True
@@ -44,8 +56,6 @@ class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=1, strip_whitespace=True)
     email: Optional[EmailStr] = None
     password: Optional[str] = Field(None, min_length=8)
-    role: Optional[Literal["admin", "superadmin", "user"]] = None
-    permissions: Optional[List[UserPermission]] = None
     roleResources: Optional[int] = Field(None, ge=0, le=4095, description="12-bit field for role resources (0-4095)")
 
     model_config = ConfigDict(

@@ -26,7 +26,10 @@ __all__ = [
     'get_user_with_model',
     'check_user_permissions',
     'find_users_by_query',
-    'update_user_permissions',
+    'update_user_role_resources',
+    'create_bitfield_from_permissions',
+    'get_role_from_bits',
+    'permissions_from_int_with_admin',
     
     # Analytics operations
     'get_analytics_total_usage',

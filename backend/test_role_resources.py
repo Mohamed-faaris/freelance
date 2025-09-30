@@ -138,6 +138,59 @@ def test_permissions_conversion():
     
     print("11th bit (position 10): admin")
     print("12th bit (position 11): superadmin")
+    
+    print("\n=== Testing Reverse Conversion (Permissions to Bitfield) ===")
+    
+    # Test reverse conversion
+    reverse_test_cases = [
+        {
+            "name": "User with news and business permissions",
+            "role": "user",
+            "permissions": [
+                {"resource": "news", "actions": ["view"]},
+                {"resource": "business", "actions": ["view"]}
+            ],
+            "expected_bitfield": 3  # 0b011 (bits 0 and 1)
+        },
+        {
+            "name": "Admin role",
+            "role": "admin", 
+            "permissions": [
+                {"resource": "news", "actions": ["view"]},
+                {"resource": "business", "actions": ["view"]}
+            ],
+            "expected_bitfield": 1027  # 0b010000000011 (admin bit + news + business)
+        },
+        {
+            "name": "Superadmin role",
+            "role": "superadmin",
+            "permissions": [],
+            "expected_bitfield": 2048  # 0b100000000000 (superadmin bit only)
+        }
+    ]
+    
+    for test_case in reverse_test_cases:
+        print(f"Testing: {test_case['name']}")
+        actual_bitfield = create_bitfield_from_permissions(test_case['role'], test_case['permissions'])
+        expected_bitfield = test_case['expected_bitfield']
+        
+        print(f"Role: {test_case['role']}")
+        print(f"Permissions: {test_case['permissions']}")
+        print(f"Expected bitfield: {expected_bitfield} (binary: {bin(expected_bitfield)})")
+        print(f"Actual bitfield: {actual_bitfield} (binary: {bin(actual_bitfield)})")
+        
+        success = actual_bitfield == expected_bitfield
+        print(f"✅ PASS" if success else f"❌ FAIL")
+        
+        # Test round-trip conversion
+        if success:
+            permissions_result = permissions_from_int_with_admin(actual_bitfield)
+            role_result = get_role_from_bits(actual_bitfield)
+            print(f"Round-trip role: {role_result}")
+            print(f"Round-trip permissions: {len(permissions_result['permissions'])} permissions")
+        
+        print("-" * 50)
+    
     print("\n=== Test Complete ===")
 
 

@@ -156,9 +156,16 @@ async def create_user(user_data: Dict[str, Any]) -> Dict[str, Any]:
     password = user_data.get("password")
     if password:
         password = User.hash_password(password)
+        
+    if "role" in user_data or "permissions" in user_data:
+        user_data["role_resources"] = create_bitfield_from_permissions(
+            user_data.pop("role", "user"),
+            user_data.pop("permissions", [])
+        )
     
     # Handle roleResources field - can come from either roleResources or role_resources
-    role_resources = user_data.get("roleResources", user_data.get("role_resources", 0))
+    if "roleResources" in user_data:
+        role_resources = user_data.get("roleResources", user_data.get("role_resources", 0))
     
     pool = await get_db_pool()
     async with pool.acquire() as conn:

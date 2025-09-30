@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from schemas.user import userEntity, PermissionQuery, UpdatePermissionsRequest, PermissionResponse, UpdatePermissionsResponse
-from utils.dbCalls.user_db import find_user_by_id, find_users_by_query, update_user_role_resources, create_bitfield_from_permissions
+from utils.dbCalls.user_db import find_all_users, find_user_by_id, find_users_by_query, update_user_role_resources, create_bitfield_from_permissions
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -29,24 +29,24 @@ async def get_permissions(
         
         # Get all users since we can't query by computed "role" field directly
         users = await find_all_users()
-
+        # print(f"Total users fetched: {users}")
         # Filter users by role if specified, and extract permissions
         all_permissions = []
-        for user in users:
-            # Skip users that don't match the role filter
-            if role and user.get("role") != role:
-                continue
+        # for user in users:
+        #     # Skip users that don't match the role filter
+        #     if role and user.get("role") != role:
+        #         continue
                 
-            user_perms = user.get("permissions", [])
+        #     user_perms = user.get("permissions", [])
             
-            for perm in user_perms:
-                if not resource or perm.get("resource") == resource:
-                    all_permissions.append({
-                        "userId": str(user["id"]),
-                        "username": user.get("username"),
-                        "role": user.get("role"),
-                        **perm
-                    })
+        #     for perm in user_perms:
+        #         if not resource or perm.get("resource") == resource:
+        #             all_permissions.append({
+        #                 "userId": str(user["id"]),
+        #                 "username": user.get("username"),
+        #                 "role": user.get("role"),
+        #                 **perm
+        #             })
 
         return PermissionResponse(permissions=all_permissions)
 

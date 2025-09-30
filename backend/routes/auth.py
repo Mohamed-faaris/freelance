@@ -7,7 +7,6 @@ from utils.dbCalls.auth_db import (
     get_user_for_token_validation,
     check_user_exists_by_email,
     check_user_exists_by_username,
-    insert_new_user
 )
 from utils.dbCalls.user_db import validate_user_password, create_user
 from schemas.user import serializeDict
@@ -63,6 +62,7 @@ async def login(request: LoginRequest, response: Response):
                 "email": user_doc["email"],
                 "username": user_doc["username"],
                 "role": user_doc["role"],
+                "permissions": user_doc.get("permissions", []),
             },
         }
     except Exception as ex:
@@ -99,6 +99,8 @@ async def get_current_user(request: Request):
                 "username": user_doc["username"],
                 "email": user_doc["email"],
                 "role": user_doc["role"],
+                "permissions": user_doc.get("permissions", []),
+                "createdAt": user_doc["createdAt"],
             },
         }
 

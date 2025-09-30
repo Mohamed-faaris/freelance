@@ -3,13 +3,10 @@ from typing import List, Optional
 
 # Serialization for new User model
 def userEntity(item) -> dict:
-    from utils.dbCalls.user_db import permissions_from_int_with_admin, get_role_from_bits
-    
-    # Use role_resources to generate permissions and role
+    # Use the already computed permissions and role from add_computed_fields_to_user_row
+    permissions = item.get("permissions", [])
+    role = item.get("role", "user")
     role_resources = item.get("role_resources", 0)
-    permissions_data = permissions_from_int_with_admin(role_resources)
-    permissions = permissions_data["permissions"]
-    role = get_role_from_bits(role_resources)
     
     return {
         "id": str(item["id"]),
@@ -17,13 +14,8 @@ def userEntity(item) -> dict:
         "username": item.get("username"),
         "email": item.get("email"),
         "password": item.get("password"),
-        "role": role,  # Computed from roleResources
-        "permissions": [
-            {
-                "resource": perm.get("resource"),
-                "actions": perm.get("actions", ["view"])
-            } for perm in permissions
-        ],
+        "role": role,  # Already computed from roleResources
+        "permissions": permissions,  # Already computed from roleResources
         "roleResources": role_resources,
         "createdAt": item.get("created_at") or item.get("createdAt"),
         "updatedAt": item.get("updated_at") or item.get("updatedAt"),

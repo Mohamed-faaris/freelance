@@ -7,7 +7,6 @@ that are shared across multiple modules.
 
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
-from bson import ObjectId
 
 
 def parse_date_with_fallback(date_str: Optional[str], fallback_days: int = 30) -> datetime:
@@ -40,25 +39,25 @@ def format_end_date(date: datetime) -> datetime:
     return date.replace(hour=23, minute=59, second=59, microsecond=999999)
 
 
-def serialize_object_ids(data: Dict[str, Any]) -> Dict[str, Any]:
+def serialize_ids(data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Convert ObjectId fields to strings for JSON serialization.
+    Convert ID fields to strings for JSON serialization.
     
     Args:
-        data: Dictionary that may contain ObjectId values
+        data: Dictionary that may contain ID values
         
     Returns:
-        Dictionary with ObjectId values converted to strings
+        Dictionary with ID values converted to strings
     """
     if isinstance(data, dict):
         result = {}
         for key, value in data.items():
-            if isinstance(value, ObjectId):
+            if key == "id" and isinstance(value, int):
                 result[key] = str(value)
             elif isinstance(value, dict):
-                result[key] = serialize_object_ids(value)
+                result[key] = serialize_ids(value)
             elif isinstance(value, list):
-                result[key] = [serialize_object_ids(item) if isinstance(item, dict) else str(item) if isinstance(item, ObjectId) else item for item in value]
+                result[key] = [serialize_ids(item) if isinstance(item, dict) else item for item in value]
             else:
                 result[key] = value
         return result
@@ -86,18 +85,18 @@ def calculate_pagination_info(total_count: int, page: int, limit: int) -> Dict[s
     }
 
 
-def validate_object_id(id_str: str) -> bool:
+def validate_id(id_str: str) -> bool:
     """
-    Validate if a string is a valid MongoDB ObjectId.
+    Validate if a string is a valid integer ID.
     
     Args:
         id_str: String to validate
         
     Returns:
-        True if valid ObjectId, False otherwise
+        True if valid integer ID, False otherwise
     """
     try:
-        ObjectId(id_str)
+        int(id_str)
         return True
-    except Exception:
+    except (ValueError, TypeError):
         return False

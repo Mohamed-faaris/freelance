@@ -5,8 +5,7 @@ This module contains all database operations related to authentication and autho
 """
 
 from typing import Optional, Dict, Any
-from bson import ObjectId
-from config.db import userCollection
+from config.db import get_db_pool
 
 
 async def authenticate_user_by_email(email: str) -> Optional[Dict[str, Any]]:
@@ -19,21 +18,40 @@ async def authenticate_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     Returns:
         User document if found, None otherwise
     """
-    return await userCollection.find_one({"email": email})
+    try:
+        pool = await get_db_pool()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT id, username, email, password, role, permissions, created_at, updated_at FROM users WHERE email = $1",
+                email
+            )
+            if row:
+                return dict(row)
+            return None
+    except Exception:
+        return None
 
 
-async def get_user_for_token_validation(user_id: str) -> Optional[Dict[str, Any]]:
+async def get_user_for_token_validation(user_id: int) -> Optional[Dict[str, Any]]:
     """
     Get user document for token validation.
     
     Args:
-        user_id: String representation of the user's ObjectId
+        user_id: User's ID
         
     Returns:
         User document if found, None otherwise
     """
     try:
-        return await userCollection.find_one({"_id": ObjectId(user_id)})
+        pool = await get_db_pool()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT id, username, email, password, role, permissions, created_at, updated_at FROM users WHERE id = $1",
+                user_id
+            )
+            if row:
+                return dict(row)
+            return None
     except Exception:
         return None
 
@@ -48,8 +66,13 @@ async def check_user_exists_by_email(email: str) -> bool:
     Returns:
         True if user exists, False otherwise
     """
-    user = await userCollection.find_one({"email": email})
-    return user is not None
+    try:
+        pool = await get_db_pool()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT id FROM users WHERE email = $1", email)
+            return row is not None
+    except Exception:
+        return False
 
 
 async def check_user_exists_by_username(username: str) -> bool:
@@ -62,11 +85,16 @@ async def check_user_exists_by_username(username: str) -> bool:
     Returns:
         True if user exists, False otherwise
     """
-    user = await userCollection.find_one({"username": username})
-    return user is not None
+    try:
+        pool = await get_db_pool()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT id FROM users WHERE username = $1", username)
+            return row is not None
+    except Exception:
+        return False
 
 
-async def insert_new_user(user_data: Dict[str, Any]) -> str:
+async def insert_new_user(user_data: Dict[str, Any]) -> int:
     """
     Insert a new user and return the user ID.
     
@@ -74,7 +102,35 @@ async def insert_new_user(user_data: Dict[str, Any]) -> str:
         user_data: User data dictionary
         
     Returns:
-        String representation of the inserted user's ObjectId
+        ID of the inserted user
     """
-    result = await userCollection.insert_one(user_data)
-    return str(result.inserted_id)
+    try:
+        import json
+        from datetime import datetime, timezone
+        
+        now = datetime.now(timezone.utc)
+        
+        # Convert permissions to JSON string if it's a list
+        permissions = user_data.get("permissions", [])
+        if isinstance(permissions, list):
+            permissions = json.dumps(permissions)
+        
+        pool = await get_db_pool()
+        async with pool.acquire() as conn:
+            user_id = await conn.fetchval(
+                """
+                INSERT INTO users (username, email, password, role, permissions, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING id
+                """,
+                user_data.get("username"),
+                user_data.get("email"),
+                user_data.get("password"),
+                user_data.get("role", "user"),
+                permissions,
+                user_data.get("createdAt") or now,
+                user_data.get("updatedAt") or now
+            )
+            return user_id
+    except Exception:
+        return None

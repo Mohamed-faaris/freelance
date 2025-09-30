@@ -156,7 +156,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
             raise HTTPException(status_code=401, detail="Authentication required")
 
         # Get user
-        user_doc = await find_user_by_id(decoded["id"])
+        user_doc = await find_user_by_id(int(decoded["id"]))
         if not user_doc:
             print(f"User not found for ID: {decoded['id']}")
             raise HTTPException(status_code=401, detail="User not found")

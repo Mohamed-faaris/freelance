@@ -71,7 +71,7 @@ async def create_new_user(user: UserCreate):
 @userRoute.put("/{id}")
 async def update_existing_user(id, user: UserUpdate):
     # Get existing user
-    existing_user = await find_user_by_id(id)
+    existing_user = await find_user_by_id(int(id))
     if not existing_user:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -79,11 +79,11 @@ async def update_existing_user(id, user: UserUpdate):
     user_dict = user.model_dump(exclude_unset=True)  # Only include fields that were provided
     
     # Update user
-    updated_user = await update_user(id, user_dict)
+    updated_user = await update_user(int(id), user_dict)
     return {"user": serializeDict(updated_user)}
 
 
 @userRoute.delete("/{id}")
 async def delete_existing_user(id):
-    deleted_user = await delete_user(id)
+    deleted_user = await delete_user(int(id))
     return serializeDict(deleted_user)

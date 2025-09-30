@@ -48,7 +48,7 @@ async def get_analytics(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     # Get user
-    user_doc = await find_user_by_id(decoded["id"])
+    user_doc = await find_user_by_id(int(decoded["id"]))
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
 
@@ -78,9 +78,9 @@ async def get_analytics(
     profile_type_counts = await get_analytics_profile_type_counts(filter_)
     top_endpoints = await get_analytics_top_endpoints(filter_, limit=15)
 
-    # Convert ObjectId to str for serialization
+    # Convert IDs to str for serialization
     for item in user_usage:
-        if "userId" in item["_id"]:
+        if "_id" in item and isinstance(item["_id"], dict) and "userId" in item["_id"]:
             item["_id"]["userId"] = str(item["_id"]["userId"])
 
     # Format response
@@ -121,7 +121,7 @@ async def get_analytics_logs(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     # Get user
-    user_doc = await find_user_by_id(decoded["id"])
+    user_doc = await find_user_by_id(int(decoded["id"]))
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
 

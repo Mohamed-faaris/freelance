@@ -29,11 +29,12 @@ Levenshtein==0.27.1
 markdown-it-py==4.0.0
 MarkupSafe==3.0.2
 mdurl==0.1.2
-motor==3.7.1
 numpy==1.26.4
 opencv-python<4.10
 packaging==25.0
 pillow==11.3.0
+psycopg2-binary==2.9.9
+asyncpg==0.29.0
 pycparser==2.23
 pydantic==2.11.7
 pydantic-settings==2.10.1
@@ -41,7 +42,6 @@ pydantic_core==2.33.2
 pydyf==0.11.0
 Pygments==2.19.2
 PyJWT==2.10.1
-pymongo==4.15.0
 pyphen==0.17.2
 pytesseract==0.3.13
 python-dotenv==1.1.1

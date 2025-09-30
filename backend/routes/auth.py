@@ -40,7 +40,7 @@ async def login(request: LoginRequest, response: Response):
 
         # Generate JWT token
         token = jwt.encode(
-            {"id": str(user_doc["_id"]), "email": user_doc["email"], "exp": datetime.now(timezone.utc).timestamp() + 60*60*24*7},
+            {"id": str(user_doc["id"]), "email": user_doc["email"], "exp": datetime.now(timezone.utc).timestamp() + 60*60*24*7},
             JWT_SECRET,
             algorithm="HS256"
         )
@@ -59,8 +59,8 @@ async def login(request: LoginRequest, response: Response):
         return {
             "success": True,
             "user": {
-                "id": str(user_doc["_id"]),
-                "_id": str(user_doc["_id"]),
+                "id": str(user_doc["id"]),
+                "_id": str(user_doc["id"]),  # Keep for backwards compatibility
                 "email": user_doc["email"],
                 "username": user_doc["username"],
                 "role": user_doc["role"],
@@ -88,15 +88,15 @@ async def get_current_user(request: Request):
             raise HTTPException(status_code=401, detail="Invalid token")
 
         # Find user by ID
-        user_doc = await get_user_for_token_validation(decoded["id"])
+        user_doc = await get_user_for_token_validation(int(decoded["id"]))
 
         if not user_doc:
             raise HTTPException(status_code=404, detail="User not found")
 
         return {
             "user": {
-                "_id": str(user_doc["_id"]),
-                "id": str(user_doc["_id"]),
+                "_id": str(user_doc["id"]),  # Keep for backwards compatibility
+                "id": str(user_doc["id"]),
                 "username": user_doc["username"],
                 "email": user_doc["email"],
                 "role": user_doc["role"],
@@ -178,7 +178,7 @@ async def register(request: dict, response: Response):
 
         # Create user (this function handles hashing and timestamps)
         created_user = await create_user(user_doc)
-        user_id = str(created_user["_id"])
+        user_id = str(created_user["id"])
 
         # Prepare response (do not include password)
 

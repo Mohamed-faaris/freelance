@@ -199,7 +199,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
             try:
                 await process_mobile_to_pan_verification(
                     data.mobile,
-                    str(user_doc["_id"]),
+                    str(user_doc["id"]),
                     username,
                     user_role,
                     verification_results
@@ -225,7 +225,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                 if verification_type == "aadhaar" and data.aadhaar_number:
                     await process_aadhaar_verification(
                         data.aadhaar_number,
-                        str(user_doc["_id"]),
+                        str(user_doc["id"]),
                         username,
                         user_role,
                         verification_results
@@ -237,7 +237,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if pan_to_verify:
                         await process_pan_verification(
                             pan_to_verify,
-                            str(user_doc["_id"]),
+                            str(user_doc["id"]),
                             username,
                             user_role,
                             verification_results
@@ -247,7 +247,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     await process_dl_verification(
                         data.dl_number,
                         formatted_dob,
-                        str(user_doc["_id"]),
+                        str(user_doc["id"]),
                         username,
                         user_role,
                         verification_results
@@ -256,7 +256,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                 elif verification_type == "rc-advanced" and data.rc_number:
                     await process_rc_advanced_verification(
                         data.rc_number,
-                        str(user_doc["_id"]),
+                        str(user_doc["id"]),
                         username,
                         user_role,
                         verification_results
@@ -265,7 +265,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                 elif verification_type == "rc-challan" and data.rc_number:
                     await process_rc_challan_verification(
                         data.rc_number,
-                        str(user_doc["_id"]),
+                        str(user_doc["id"]),
                         username,
                         user_role,
                         verification_results
@@ -277,7 +277,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if pan_for_uan:
                         uan_result = await process_pan_to_uan_verification(
                             pan_for_uan,
-                            str(user_doc["_id"]),
+                            str(user_doc["id"]),
                             username,
                             user_role,
                             verification_results
@@ -289,7 +289,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                             uan_result.get("verificationStatus") == "verified"):
                             await process_employment_history_verification(
                                 uan_result["uanNumber"],
-                                str(user_doc["_id"]),
+                                str(user_doc["id"]),
                                 username,
                                 user_role,
                                 verification_results
@@ -298,7 +298,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                 elif verification_type == "aadhaar-to-uan" and data.aadhaar_number:
                     uan_result = await process_aadhaar_to_uan_verification(
                         data.aadhaar_number,
-                        str(user_doc["_id"]),
+                        str(user_doc["id"]),
                         username,
                         user_role,
                         verification_results
@@ -310,7 +310,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         uan_result.get("verificationStatus") == "verified"):
                         await process_employment_history_verification(
                             uan_result["uanNumber"],
-                            str(user_doc["_id"]),
+                            str(user_doc["id"]),
                             username,
                             user_role,
                             verification_results
@@ -321,7 +321,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if mobile_for_uan:
                         uan_result = await process_mobile_to_uan_verification(
                             mobile_for_uan,
-                            str(user_doc["_id"]),
+                            str(user_doc["id"]),
                             username,
                             user_role,
                             verification_results
@@ -333,7 +333,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                             uan_result.get("verificationStatus") == "verified"):
                             await process_employment_history_verification(
                                 uan_result["uanNumber"],
-                                str(user_doc["_id"]),
+                                str(user_doc["id"]),
                                 username,
                                 user_role,
                                 verification_results
@@ -344,7 +344,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if mobile_for_mnrl:
                         await process_mnrl_verification(
                             mobile_for_mnrl,
-                            str(user_doc["_id"]),
+                            str(user_doc["id"]),
                             username,
                             user_role,
                             verification_results
@@ -355,7 +355,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if epic_number:
                         await process_voter_id_verification(
                             epic_number,
-                            str(user_doc["_id"]),
+                            str(user_doc["id"]),
                             username,
                             user_role,
                             verification_results
@@ -367,7 +367,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         await process_passport_verification(
                             file_number,
                             formatted_dob,
-                            str(user_doc["_id"]),
+                            str(user_doc["id"]),
                             username,
                             user_role,
                             verification_results
@@ -377,7 +377,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     await process_bank_account_verification(
                         data.bankAccount,
                         data.ifscCode,
-                        str(user_doc["_id"]),
+                        str(user_doc["id"]),
                         username,
                         user_role,
                         verification_results
@@ -387,7 +387,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     await process_upi_verification(
                         data.upi,
                         data.name,
-                        str(user_doc["_id"]),
+                        str(user_doc["id"]),
                         username,
                         user_role,
                         verification_results

@@ -80,8 +80,8 @@ async def get_analytics(
 
     # Convert IDs to str for serialization
     for item in user_usage:
-        if "_id" in item and isinstance(item["_id"], dict) and "userId" in item["_id"]:
-            item["_id"]["userId"] = str(item["_id"]["userId"])
+        if "id" in item and isinstance(item["id"], dict) and "userId" in item["id"]:
+            item["id"]["userId"] = str(item["id"]["userId"])
 
     # Format response
     analytics = {

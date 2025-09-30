@@ -89,7 +89,7 @@ async def verification_lite(request: Request, data: VerificationLiteRequest):
             raise HTTPException(status_code=401, detail="Authentication required")
 
         # Get user
-        user_doc = await find_user_by_id(decoded["id"])
+        user_doc = await find_user_by_id(int(decoded["id"]))
         if not user_doc:
             print(f"User not found for ID: {decoded['id']}")
             raise HTTPException(status_code=401, detail="User not found")
@@ -103,19 +103,19 @@ async def verification_lite(request: Request, data: VerificationLiteRequest):
         priority_api_calls = [
             {
                 "name": "PAN Plus",
-                "call": lambda: fetch_pan_plus(data.pan_number, str(user_doc["_id"]), username, user_role),
+                "call": lambda: fetch_pan_plus(data.pan_number, str(user_doc["id"]), username, user_role),
                 "endpoint": "verification/pan-plus",
                 "priority": "HIGH",
             },
             {
                 "name": "Mobile to Name",
-                "call": lambda: fetch_mobile_to_name(data.mobile_number, str(user_doc["_id"]), username, user_role),
+                "call": lambda: fetch_mobile_to_name(data.mobile_number, str(user_doc["id"]), username, user_role),
                 "endpoint": "mobile-intelligence/mobile-to-name",
                 "priority": "HIGH",
             },
             {
                 "name": "PAN to UAN",
-                "call": lambda: fetch_pan_to_uan(data.pan_number, str(user_doc["_id"]), username, user_role),
+                "call": lambda: fetch_pan_to_uan(data.pan_number, str(user_doc["id"]), username, user_role),
                 "endpoint": "verification/epfo/pan-to-uan",
                 "priority": "HIGH",
             },
@@ -124,19 +124,19 @@ async def verification_lite(request: Request, data: VerificationLiteRequest):
         secondary_api_calls = [
             {
                 "name": "Mobile Network Details",
-                "call": lambda: fetch_mobile_network_details(data.mobile_number, str(user_doc["_id"]), username, user_role),
+                "call": lambda: fetch_mobile_network_details(data.mobile_number, str(user_doc["id"]), username, user_role),
                 "endpoint": "mobile-intelligence/mobile-to-network-details",
                 "priority": "MEDIUM",
             },
             {
                 "name": "PAN to Father Name",
-                "call": lambda: fetch_pan_to_father_name(data.pan_number, str(user_doc["_id"]), username, user_role),
+                "call": lambda: fetch_pan_to_father_name(data.pan_number, str(user_doc["id"]), username, user_role),
                 "endpoint": "verification/pan-to-fathername",
                 "priority": "MEDIUM",
             },
             {
                 "name": "PAN KRA Status",
-                "call": lambda: fetch_pan_kra_status(data.pan_number, str(user_doc["_id"]), username, user_role),
+                "call": lambda: fetch_pan_kra_status(data.pan_number, str(user_doc["id"]), username, user_role),
                 "endpoint": "verification/pan-kra-status",
                 "priority": "MEDIUM",
             },
@@ -145,13 +145,13 @@ async def verification_lite(request: Request, data: VerificationLiteRequest):
         additional_api_calls = [
             {
                 "name": "Mobile to Digital Age",
-                "call": lambda: fetch_mobile_to_digital_age(data.mobile_number, str(user_doc["_id"]), username, user_role),
+                "call": lambda: fetch_mobile_to_digital_age(data.mobile_number, str(user_doc["id"]), username, user_role),
                 "endpoint": "mobile-intelligence/mobile-to-digital-age",
                 "priority": "LOW",
             },
             {
                 "name": "Mobile to Multiple UPI",
-                "call": lambda: fetch_mobile_to_multiple_upi(data.mobile_number, str(user_doc["_id"]), username, user_role),
+                "call": lambda: fetch_mobile_to_multiple_upi(data.mobile_number, str(user_doc["id"]), username, user_role),
                 "endpoint": "mobile-intelligence/mobile-to-multiple-upi",
                 "priority": "LOW",
             },
@@ -247,14 +247,14 @@ async def verification_lite(request: Request, data: VerificationLiteRequest):
             if uan_number:
                 conditional_api_calls.append({
                     "name": "UAN Employment History",
-                    "call": lambda: fetch_uan_employment_history(uan_number, str(user_doc["_id"]), username, user_role),
+                    "call": lambda: fetch_uan_employment_history(uan_number, str(user_doc["id"]), username, user_role),
                     "endpoint": "verification/epfo/uan-to-employment-history",
                 })
 
             # Add PAN MSME Check
             conditional_api_calls.append({
                 "name": "PAN MSME Check",
-                "call": lambda: fetch_pan_msme_check(data.pan_number, str(user_doc["_id"]), username, user_role),
+                "call": lambda: fetch_pan_msme_check(data.pan_number, str(user_doc["id"]), username, user_role),
                 "endpoint": "verification/pan-msme-check",
             })
 

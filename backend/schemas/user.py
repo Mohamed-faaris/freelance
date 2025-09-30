@@ -10,7 +10,6 @@ def userEntity(item) -> dict:
     
     return {
         "id": str(item["id"]),
-        "_id": str(item["id"]),  # Keep for backwards compatibility
         "username": item.get("username"),
         "email": item.get("email"),
         "password": item.get("password"),

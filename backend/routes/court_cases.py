@@ -755,7 +755,7 @@ async def get_current_user(request: Request):
 
     # Get user document from database
     from utils.dbCalls.user_db import find_user_by_id
-    user_doc = await find_user_by_id(user_id)
+    user_doc = await find_user_by_id(int(user_id))
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
 

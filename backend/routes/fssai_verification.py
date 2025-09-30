@@ -6,12 +6,10 @@ import requests
 import asyncio
 from datetime import datetime
 from typing import Dict, Any, Optional
-from bson import ObjectId
-from config.db import userCollection, apiAnalyticsCollection
 from models.user import User
 from models.api_analytics import ApiAnalytics
 from services.authService import auth_service
-from utils.auth import authenticate_request
+from utils.auth import authenticate_request, get_authenticated_user
 from utils.api_tracking import track_external_api_call
 
 router = APIRouter()
@@ -61,12 +59,7 @@ async def post_business_verification(request: Request, data: Dict[str, Any]):
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     try:
-        # Get user details
-        user_id = user["id"]
-        user_doc = await userCollection.find_one({"_id": ObjectId(user_id)})
-
-        if not user_doc:
-            raise HTTPException(status_code=401, detail="User not found")
+        user_doc = await get_authenticated_user(request)
 
         gstin = data.get("gstin")
         fssai_id = data.get("fssai_id") or data.get("fssaiId")  # Support both snake_case and camelCase
@@ -84,7 +77,7 @@ async def post_business_verification(request: Request, data: Dict[str, Any]):
             try:
                 gst_data = await fetch_gst_basic(
                     gstin.strip(),
-                    str(user_doc["_id"]),
+                    user_doc.get("id"),
                     user_doc.get("username", ""),
                     user_doc.get("role", "")
                 )
@@ -97,7 +90,7 @@ async def post_business_verification(request: Request, data: Dict[str, Any]):
             try:
                 fssai_data = await fetch_fssai(
                     fssai_id.strip(),
-                    str(user_doc["_id"]),
+                    user_doc.get("id"),
                     user_doc.get("username", ""),
                     user_doc.get("role", "")
                 )

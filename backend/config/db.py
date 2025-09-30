@@ -1,22 +1,15 @@
-import os
-from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorClient
+from config.database import (
+    engine,
+    AsyncSessionLocal,
+    get_db,
+    init_db,
+    test_connection,
+)
 
-load_dotenv()
-
-uri = os.getenv("MONGODB_URI")
-print(f"Connecting to MongoDB at {uri}")
-conn = AsyncIOMotorClient(uri)
-
-try:
-    # Ping the database to verify connection
-    conn.admin.command('ping')
-    print("Pinged your deployment. You successfully connected to MongoDB!")
-except Exception as e:
-    print(e)
-    
-db = conn['myapp']
-
-#collections
-userCollection = db['user']
-apiAnalyticsCollection = db['apiAnalytics']
+__all__ = [
+    "engine",
+    "AsyncSessionLocal",
+    "get_db",
+    "init_db",
+    "test_connection",
+]

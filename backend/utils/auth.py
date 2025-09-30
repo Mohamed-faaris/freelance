@@ -2,8 +2,9 @@ import jwt
 import os
 from fastapi import HTTPException, Request
 from typing import Optional, Dict, Any
-from bson import ObjectId
-from config.db import userCollection
+from sqlalchemy import select
+from config.database import AsyncSessionLocal
+from models.database_models import User as UserModel
 
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
 
@@ -53,11 +54,16 @@ async def get_authenticated_user(request: Request) -> Dict[str, Any]:
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    user_doc = await userCollection.find_one({"_id": ObjectId(user_id)})
-    if not user_doc:
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(UserModel).where(UserModel.uuid == user_id)
+        )
+        user_obj = result.scalar_one_or_none()
+
+    if not user_obj:
         raise HTTPException(status_code=401, detail="User not found")
 
-    return user_doc
+    return user_obj.to_dict()
 
 def validate_user_permissions(user_doc: Dict[str, Any], required_permissions: list = None) -> bool:
     """

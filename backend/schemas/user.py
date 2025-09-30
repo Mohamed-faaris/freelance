@@ -24,10 +24,14 @@ def usersEntity(entity) -> list:
 
 #Best way
 def serializeDict(a) -> dict:
-    return {
-        **{i: str(a[i]) for i in a if i == '_id'},
-        **{i: a[i] for i in a if i != '_id'}
-    }
+    if hasattr(a, "to_dict"):
+        return a.to_dict()
+    if isinstance(a, dict):
+        return {
+            **{i: str(a[i]) for i in a if i == '_id'},
+            **{i: a[i] for i in a if i != '_id'}
+        }
+    raise TypeError("Unsupported type for serialization")
 
 def serializeList(entity) -> list:
     return [serializeDict(a) for a in entity]

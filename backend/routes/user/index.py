@@ -1,9 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User, UserUpdate
-from config.db import conn
+from models.database_models import User as UserModel
+from config.database import get_db
 from schemas.user import serializeDict, serializeList
-from bson import ObjectId
-from config.db import userCollection
 from datetime import datetime, timezone
 
 userRoute = APIRouter()
@@ -12,8 +14,9 @@ userRoute = APIRouter()
 
 
 @userRoute.get("")
-async def find_all_users():
-    users = await userCollection.find().to_list(length=None)
+async def find_all_users(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(UserModel))
+    users = result.scalars().all()
     return {"users": serializeList(users)}
 
 
@@ -23,25 +26,38 @@ async def find_all_users():
 
 
 @userRoute.post("")
-async def create_user(user: User):
+async def create_user(user: User, db: AsyncSession = Depends(get_db)):
     try:
-        # Check uniqueness before creating
-        existing_username = await userCollection.find_one({"username": user.username})
-        if existing_username:
+        existing_username = await db.execute(
+            select(UserModel).where(UserModel.username == user.username)
+        )
+        if existing_username.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Username already exists")
-        
-        existing_email = await userCollection.find_one({"email": user.email})
-        if existing_email:
+
+        existing_email = await db.execute(
+            select(UserModel).where(UserModel.email == user.email)
+        )
+        if existing_email.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Email already exists")
-        
+
         now = datetime.now(timezone.utc)
         user_dict = user.model_dump()
-        user_dict["password"] = User.hash_password(user_dict["password"])  # Hash the password
-        user_dict["createdAt"] = now
-        user_dict["updatedAt"] = now
-        result = await userCollection.insert_one(user_dict)
-        created_user = await userCollection.find_one({"_id": result.inserted_id})
-        return {"user": serializeDict(created_user)}
+        new_user = UserModel(
+            username=user_dict["username"],
+            email=user_dict["email"],
+            password=User.hash_password(user_dict["password"]),
+            role=user_dict.get("role", "user"),
+            permissions=user_dict.get("permissions", []),
+            is_active=True,
+            created_at=now,
+            updated_at=now,
+        )
+
+        db.add(new_user)
+        await db.commit()
+        await db.refresh(new_user)
+
+        return {"user": serializeDict(new_user)}
     except HTTPException:
         raise
     except Exception as e:
@@ -50,40 +66,42 @@ async def create_user(user: User):
 
 
 @userRoute.put("/{id}")
-async def update_user(id, user: UserUpdate):
-    # Get existing user
-    existing_user = await userCollection.find_one({"_id": ObjectId(id)})
+async def update_user(id, user: UserUpdate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(UserModel).where(UserModel.uuid == id))
+    existing_user = result.scalar_one_or_none()
+
     if not existing_user:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    # Prepare update data
-    update_data = {}
-    user_dict = user.model_dump(exclude_unset=True)  # Only include fields that were provided
-    
-    # Handle password hashing if provided
-    if user_dict.get("password"):
-        update_data["password"] = User.hash_password(user_dict["password"])
-    
-    # Add other fields that were provided
+
+    user_dict = user.model_dump(exclude_unset=True)
+
+    if "password" in user_dict and user_dict["password"]:
+        existing_user.password = User.hash_password(user_dict.pop("password"))
+
     for field, value in user_dict.items():
-        if field != "password":  # Password already handled above
-            update_data[field] = value
-    
-    # Always update the updatedAt timestamp
-    update_data["updatedAt"] = datetime.now(timezone.utc)
-    
-    # Perform the update
-    await userCollection.find_one_and_update(
-        {"_id": ObjectId(id)}, 
-        {"$set": update_data}
-    )
-    
-    # Return the updated user
-    updated_user = await userCollection.find_one({"_id": ObjectId(id)})
-    return {"user": serializeDict(updated_user)}
+        setattr(existing_user, field, value)
+
+    existing_user.updated_at = datetime.now(timezone.utc)
+
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Duplicate user data")
+
+    await db.refresh(existing_user)
+    return {"user": serializeDict(existing_user)}
 
 
 @userRoute.delete("/{id}")
-async def delete_user(id):
-    deleted_user = await userCollection.find_one_and_delete({"_id": ObjectId(id)})
-    return serializeDict(deleted_user)
+async def delete_user(id, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(UserModel).where(UserModel.uuid == id))
+    existing_user = result.scalar_one_or_none()
+
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    response_payload = serializeDict(existing_user)
+    await db.delete(existing_user)
+    await db.commit()
+    return response_payload

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Query
-from models.user import User
-from config.db import userCollection
-from schemas.user import userEntity, PermissionQuery, UpdatePermissionsRequest, PermissionResponse, UpdatePermissionsResponse
-from bson import ObjectId
+from fastapi import APIRouter, HTTPException, Query, Depends
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from schemas.user import UpdatePermissionsRequest, PermissionResponse, UpdatePermissionsResponse
 from datetime import datetime, timezone
 from typing import Optional
+from config.database import get_db
+from models.database_models import User as UserModel
 
 permissionsRoute = APIRouter()
 
@@ -12,37 +13,35 @@ permissionsRoute = APIRouter()
 async def get_permissions(
     role: Optional[str] = Query(None),
     resource: Optional[str] = Query(None),
-    userId: Optional[str] = Query(None)
+    userId: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
 ):
     try:
-        # If a specific user is requested, return their permissions
         if userId:
-            user = await userCollection.find_one({"_id": ObjectId(userId)})
+            result = await db.execute(
+                select(UserModel).where(UserModel.uuid == userId)
+            )
+            user = result.scalar_one_or_none()
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
-            return PermissionResponse(permissions=user.get("permissions", []))
+            return PermissionResponse(permissions=user.permissions or [])
 
-        # Fallback to role-based permissions if no user specified
-        print("fallback to role-based permissions")
-        query = {}
+        stmt = select(UserModel)
         if role:
-            query["role"] = role
-        if resource:
-            query["permissions.resource"] = resource
+            stmt = stmt.where(UserModel.role == role)
 
-        # Get users matching the query
-        users = await userCollection.find(query).to_list(length=None)
+        result = await db.execute(stmt)
+        users = result.scalars().all()
 
-        # Extract and flatten permissions
         all_permissions = []
         for user in users:
-            user_perms = user.get("permissions", [])
+            user_perms = user.permissions or []
             for perm in user_perms:
                 if not resource or perm.get("resource") == resource:
                     all_permissions.append({
-                        "userId": str(user["_id"]),
-                        "username": user.get("username"),
-                        "role": user.get("role"),
+                        "userId": user.uuid,
+                        "username": user.username,
+                        "role": user.role,
                         **perm
                     })
 
@@ -53,32 +52,31 @@ async def get_permissions(
 
 
 @permissionsRoute.post("")
-async def update_permissions(request: UpdatePermissionsRequest):
+async def update_permissions(
+    request: UpdatePermissionsRequest,
+    db: AsyncSession = Depends(get_db),
+):
     try:
         # Validate required fields
         if not request.userId or not request.permissions or not request.updatedBy:
             raise HTTPException(status_code=400, detail="Missing required fields")
 
-
-        
-        # Update user permissions
-        update_data = {
-            "permissions": request.permissions,
-            "updatedAt": datetime.now(timezone.utc)
-        }
-
-        updated_user = await userCollection.find_one_and_update(
-            {"_id": ObjectId(request.userId)},
-            {"$set": update_data},
-            return_document=True
+        result = await db.execute(
+            select(UserModel).where(UserModel.uuid == request.userId)
         )
+        user = result.scalar_one_or_none()
 
-        if not updated_user:
+        if not user:
             raise HTTPException(status_code=404, detail="User not found")
+
+        user.permissions = request.permissions
+        user.updated_at = datetime.now(timezone.utc)
+        await db.commit()
+        await db.refresh(user)
 
         return UpdatePermissionsResponse(
             message="Permissions updated successfully",
-            user=userEntity(updated_user)
+            user=user.to_dict()
         )
 
     except HTTPException:

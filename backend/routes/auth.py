@@ -1,10 +1,11 @@
-
-from math import e
-from fastapi import APIRouter, HTTPException, Response, Request
+from fastapi import APIRouter, HTTPException, Response, Request, Depends
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
-from config.db import userCollection
-from schemas.user import serializeDict
+from models.database_models import User as UserModel
+from config.database import get_db
 import jwt
 import os
 from datetime import datetime, timezone
@@ -18,26 +19,33 @@ class LoginRequest(BaseModel):
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")  # Set this in your environment
 
 @authRouter.post("/")
-async def login(request: LoginRequest, response: Response):
+async def login(
+    request: LoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
     try:
         if not request.email or not request.password:
             raise HTTPException(status_code=400, detail="Email and password are required")
 
-        # Find user
-        user_doc = await userCollection.find_one({"email": request.email})
-        if not  user_doc:
-            raise HTTPException(status_code=401, detail="email not found")
+        result = await db.execute(
+            select(UserModel).where(UserModel.email == request.email)
+        )
+        user_obj = result.scalar_one_or_none()
 
-        # Create User instance from document
-        user = User.model_construct(**user_doc)
+        if not user_obj:
+            raise HTTPException(status_code=401, detail="Email not found")
 
-        # Check password
-        if not user.verify_password(request.password):
+        if not user_obj.verify_password(request.password):
             raise HTTPException(status_code=401, detail="Invalid credentials password")
 
         # Generate JWT token
         token = jwt.encode(
-            {"id": str(user_doc["_id"]), "email": user.email, "exp": datetime.now(timezone.utc).timestamp() + 60*60*24*7},
+            {
+                "id": user_obj.uuid,
+                "email": user_obj.email,
+                "exp": datetime.now(timezone.utc).timestamp() + 60 * 60 * 24 * 7,
+            },
             JWT_SECRET,
             algorithm="HS256"
         )
@@ -53,22 +61,19 @@ async def login(request: LoginRequest, response: Response):
             path="/"
         )
 
+        user_data = user_obj.to_dict()
+        user_data.pop("password", None)
+
         return {
             "success": True,
-            "user": {
-                "id": str(user_doc["_id"]),
-                "_id": str(user_doc["_id"]),
-                "email": user.email,
-                "username": user.username,
-                "role": user.role,
-            },
+            "user": user_data,
         }
     except Exception as ex:
         print(f"Login error: {ex}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @authRouter.get("/")
-async def get_current_user(request: Request):
+async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         # Get token from cookie
         token = request.cookies.get("auth_token")
@@ -85,21 +90,18 @@ async def get_current_user(request: Request):
             raise HTTPException(status_code=401, detail="Invalid token")
 
         # Find user by ID
-        from bson import ObjectId
-        user_doc = await userCollection.find_one({"_id": ObjectId(decoded["id"])})
+        result = await db.execute(
+            select(UserModel).where(UserModel.uuid == decoded["id"])
+        )
+        user_obj = result.scalar_one_or_none()
 
-        if not user_doc:
+        if not user_obj:
             raise HTTPException(status_code=404, detail="User not found")
 
-        return {
-            "user": {
-                "_id": str(user_doc["_id"]),
-                "id": str(user_doc["_id"]),
-                "username": user_doc["username"],
-                "email": user_doc["email"],
-                "role": user_doc["role"],
-            },
-        }
+        user_data = user_obj.to_dict()
+        user_data.pop("password", None)
+
+        return {"user": user_data}
 
     except HTTPException:
         raise
@@ -149,7 +151,7 @@ async def logout_post(response: Response):
         raise HTTPException(status_code=500, detail="Logout failed")
 
 @authRouter.post("/register")
-async def register(request: dict, response: Response):
+async def register(request: dict, response: Response, db: AsyncSession = Depends(get_db)):
     try:
         # Basic validation
         username = request.get("username") or request.get("email")
@@ -159,58 +161,63 @@ async def register(request: dict, response: Response):
         if not email or not password:
             raise HTTPException(status_code=400, detail="Email and password are required")
 
-        # Check if email or username already exists
-        if await userCollection.find_one({"email": email}):
+        existing_email = await db.execute(
+            select(UserModel).where(UserModel.email == email)
+        )
+        if existing_email.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Email already exists")
-        if username and await userCollection.find_one({"username": username}):
-            raise HTTPException(status_code=400, detail="Username already exists")
 
-        # Hash password and create user document
-        from models.user import User
-        hashed = User.hash_password(password)
+        if username:
+            existing_username = await db.execute(
+                select(UserModel).where(UserModel.username == username)
+            )
+            if existing_username.scalar_one_or_none():
+                raise HTTPException(status_code=400, detail="Username already exists")
 
-        now = datetime.now(timezone.utc)
-        user_doc = {
-            "username": username,
-            "email": email,
-            "password": hashed,
-            "role": "admin",
-            "permissions": [],
-            "createdAt": now,
-            "updatedAt": now,
-        }
-
-        # Insert into DB
-        res = await userCollection.insert_one(user_doc)
-
-        # Prepare response (do not include password)
-        user_id = str(res.inserted_id)
-
-        token = jwt.encode(
-            {"id": user_id, "email": email, "exp": datetime.now(timezone.utc).timestamp() + 60*60*24*7},
-            JWT_SECRET,
-            algorithm="HS256"
+        new_user = UserModel(
+            username=username,
+            email=email,
+            password=User.hash_password(password),
+            role="admin",
+            permissions=[],
+            is_active=True,
         )
 
-        # Set HTTP-only cookie like login
+        db.add(new_user)
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            raise HTTPException(status_code=400, detail="User already exists")
+
+        await db.refresh(new_user)
+
+        token = jwt.encode(
+            {
+                "id": new_user.uuid,
+                "email": new_user.email,
+                "exp": datetime.now(timezone.utc).timestamp() + 60 * 60 * 24 * 7,
+            },
+            JWT_SECRET,
+            algorithm="HS256",
+        )
+
         response.set_cookie(
             key="auth_token",
             value=token,
             httponly=True,
-            secure=False,  # Set True in production
+            secure=False,
             samesite="strict",
-            max_age=60*60*24*7,
-            path="/"
+            max_age=60 * 60 * 24 * 7,
+            path="/",
         )
+
+        user_data = new_user.to_dict()
+        user_data.pop("password", None)
 
         return {
             "success": True,
-            "user": {
-                "id": user_id,
-                "username": username,
-                "email": email,
-                "role": "admin",
-            },
+            "user": user_data,
         }
 
     except HTTPException:

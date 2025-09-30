@@ -1,8 +1,16 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, JSON, ForeignKey
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DateTime,
+    Boolean,
+    Text,
+    JSON,
+    Float,
+    ForeignKey,
+)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from datetime import datetime
 import bcrypt
 import uuid
 
@@ -22,17 +30,15 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
-    # Relationships
-    api_analytics = relationship("APIAnalytics", back_populates="user")
-    
-    def hash_password(self, password: str) -> str:
+    @staticmethod
+    def hash_password(password: str) -> str:
         """Hash password using bcrypt"""
         return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
     def verify_password(self, password: str) -> bool:
         """Verify password against hash"""
         return bcrypt.checkpw(password.encode('utf-8'), self.password.encode('utf-8'))
-    
+
     def to_dict(self):
         """Convert to dictionary for JSON serialization"""
         return {
@@ -52,11 +58,17 @@ class APIAnalytics(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     uuid = Column(String(36), unique=True, default=lambda: str(uuid.uuid4()), index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_uuid = Column(String(36), index=True, nullable=False)
+    username = Column(String(100))
+    user_role = Column(String(20))
+    service = Column(String(255), nullable=False)
     endpoint = Column(String(500), nullable=False)
-    method = Column(String(10), nullable=False)
+    api_version = Column(String(20), default="v1")
+    cost = Column(Float, default=0.0)
     status_code = Column(Integer, nullable=False)
-    response_time = Column(Integer)  # in milliseconds
+    response_time = Column(Float)  # milliseconds
+    profile_type = Column(String(50))
+    business_id = Column(String(100))
     ip_address = Column(String(45))  # IPv6 compatible
     user_agent = Column(Text)
     request_data = Column(JSON)
@@ -64,19 +76,21 @@ class APIAnalytics(Base):
     error_message = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Relationships
-    user = relationship("User", back_populates="api_analytics")
-    
     def to_dict(self):
         """Convert to dictionary for JSON serialization"""
         return {
             "id": str(self.uuid),
             "_id": str(self.uuid),
-            "user_id": str(self.user.uuid) if self.user else None,
+            "userId": self.user_uuid,
+            "username": self.username,
+            "userRole": self.user_role,
             "endpoint": self.endpoint,
-            "method": self.method,
+            "service": self.service,
+            "apiVersion": self.api_version,
             "status_code": self.status_code,
             "response_time": self.response_time,
+            "profileType": self.profile_type,
+            "businessId": self.business_id,
             "ip_address": self.ip_address,
             "user_agent": self.user_agent,
             "request_data": self.request_data,

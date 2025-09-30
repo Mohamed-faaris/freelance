@@ -1,9 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
-from typing import Dict, Any, Optional
-from bson import ObjectId
-from config.db import userCollection
-from utils.auth import authenticate_request
+from typing import Dict, Any
+from utils.auth import authenticate_request, get_authenticated_user
 from services.mailService import send_business_verification_email
 
 router = APIRouter()
@@ -19,12 +17,7 @@ async def send_fssai_email(request: Request, data: Dict[str, Any]):
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     try:
-        # Get user details
-        user_id = user["id"]
-        user_doc = await userCollection.find_one({"_id": ObjectId(user_id)})
-
-        if not user_doc:
-            raise HTTPException(status_code=401, detail="User not found")
+        user_doc = await get_authenticated_user(request)
 
         # Extract email and business data from request
         recipient_email = data.get("email")

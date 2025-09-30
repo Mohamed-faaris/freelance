@@ -1,7 +1,6 @@
 import os
 from datetime import datetime
 from typing import Dict, Any, Callable, Awaitable, Optional
-from bson import ObjectId
 from models.api_analytics import ApiAnalytics
 
 ENABLE_ANALYTICS_TRACKING = os.getenv("ENABLE_ANALYTICS_TRACKING", "true").lower() == "true"
@@ -85,7 +84,7 @@ async def track_external_api_call(
         # Log successful API call if analytics tracking is enabled
         if ENABLE_ANALYTICS_TRACKING:
             await ApiAnalytics.log_api_call({
-                "userId": ObjectId(user_id),
+                "userId": user_id,
                 "username": username,
                 "userRole": user_role,
                 "service": service,
@@ -108,7 +107,7 @@ async def track_external_api_call(
         # Log failed API call if analytics tracking is enabled
         if ENABLE_ANALYTICS_TRACKING:
             await ApiAnalytics.log_api_call({
-                "userId": ObjectId(user_id),
+                "userId": user_id,
                 "username": username,
                 "userRole": user_role,
                 "service": service,

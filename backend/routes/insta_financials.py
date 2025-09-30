@@ -7,9 +7,8 @@ import asyncio
 from datetime import datetime
 from typing import Dict, Any, Optional
 from bson import ObjectId
-from config.db import userCollection
-from models.user import User
-from models.api_analytics import ApiAnalytics
+from utils.dbCalls.user_db import find_user_by_id
+from utils.dbCalls.analytics_db import log_api_call
 
 router = APIRouter()
 
@@ -53,48 +52,44 @@ async def track_insta_api_call(
         response_time = (datetime.utcnow() - start_time).total_seconds() * 1000  # in milliseconds
         cost = INSTA_API_COSTS.get(service, 5.0)
 
-        await asyncio.get_event_loop().run_in_executor(
-            None,
-            lambda: ApiAnalytics.log_api_call({
-                "userId": ObjectId(user_id),
-                "username": username,
-                "userRole": user_role,
-                "service": service,
-                "endpoint": service,
-                "apiVersion": "v1",
-                "cost": cost,
-                "statusCode": 200,
-                "responseTime": response_time,
-                "profileType": "business",
-                "requestData": args[0] if args else None,
-                "responseData": result,
-                "businessId": None,
-            })
-        )
+        await log_api_call({
+            "userId": ObjectId(user_id),
+            "username": username,
+            "userRole": user_role,
+            "service": service,
+            "endpoint": service,
+            "apiVersion": "v1",
+            "cost": cost,
+            "statusCode": 200,
+            "responseTime": response_time,
+            "profileType": "business",
+            "requestData": args[0] if args else None,
+            "responseData": result,
+            "businessId": None,
+            "createdAt": datetime.utcnow()
+        })
 
         return result
     except Exception as error:
         response_time = (datetime.utcnow() - start_time).total_seconds() * 1000
-        await asyncio.get_event_loop().run_in_executor(
-            None,
-            lambda: ApiAnalytics.log_api_call({
-                "userId": ObjectId(user_id),
-                "username": username,
-                "userRole": user_role,
-                "service": service,
-                "endpoint": service,
-                "apiVersion": "v1",
-                "cost": INSTA_API_COSTS.get(service, 5.0),
-                "statusCode": 500,
-                "responseTime": response_time,
-                "profileType": "business",
-                "requestData": args[0] if args else None,
-                "responseData": {
-                    "error": str(error)
-                },
-                "businessId": None,
-            })
-        )
+        await log_api_call({
+            "userId": ObjectId(user_id),
+            "username": username,
+            "userRole": user_role,
+            "service": service,
+            "endpoint": service,
+            "apiVersion": "v1",
+            "cost": INSTA_API_COSTS.get(service, 5.0),
+            "statusCode": 500,
+            "responseTime": response_time,
+            "profileType": "business",
+            "requestData": args[0] if args else None,
+            "responseData": {
+                "error": str(error)
+            },
+            "businessId": None,
+            "createdAt": datetime.utcnow()
+        })
         raise error
 
 async def fetch_insta_financials(cin: str, service: str, user_id: str, username: str, user_role: str):
@@ -155,12 +150,13 @@ async def post_insta_financials(request: Request):
         if not user_id:
             raise HTTPException(status_code=401, detail="Authentication failed")
 
-        user_doc = await userCollection.find_one({"_id": ObjectId(user_id)})
+        user_doc = await find_user_by_id(user_id)
         if not user_doc:
             raise HTTPException(status_code=401, detail="User not found")
 
-        # Create User instance from document
-        user = User.model_construct(**user_doc)
+        # Get user details
+        username = user_doc.get("username", "Unknown")
+        user_role = user_doc.get("role", "user")
 
         body = await request.json()
         cin = body.get("cin")
@@ -182,8 +178,8 @@ async def post_insta_financials(request: Request):
                 cin,
                 "insta-summary",
                 user_id,
-                user.username,
-                user.role
+                username,
+                user_role
             )
             print("Summary API call successful")
         except Exception as error:
@@ -197,8 +193,8 @@ async def post_insta_financials(request: Request):
                 cin,
                 "insta-basic",
                 user_id,
-                user.username,
-                user.role
+                username,
+                user_role
             )
             print("Basic API call successful")
         except Exception as error:

@@ -8,9 +8,7 @@ import requests
 import asyncio
 from datetime import datetime
 from bson import ObjectId
-from config.db import userCollection, apiAnalyticsCollection
-from models.user import User
-from models.api_analytics import ApiAnalytics
+from utils.dbCalls.user_db import find_user_by_id
 from services.authService import auth_service
 from utils import (
     authenticate_request,

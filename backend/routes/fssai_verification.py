@@ -7,9 +7,7 @@ import asyncio
 from datetime import datetime
 from typing import Dict, Any, Optional
 from bson import ObjectId
-from config.db import userCollection, apiAnalyticsCollection
-from models.user import User
-from models.api_analytics import ApiAnalytics
+from utils.dbCalls.user_db import find_user_by_id
 from services.authService import auth_service
 from utils.auth import authenticate_request
 from utils.api_tracking import track_external_api_call
@@ -63,7 +61,7 @@ async def post_business_verification(request: Request, data: Dict[str, Any]):
     try:
         # Get user details
         user_id = user["id"]
-        user_doc = await userCollection.find_one({"_id": ObjectId(user_id)})
+        user_doc = await find_user_by_id(user_id)
 
         if not user_doc:
             raise HTTPException(status_code=401, detail="User not found")

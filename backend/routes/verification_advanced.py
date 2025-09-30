@@ -1,10 +1,8 @@
 from fastapi import APIRouter, HTTPException, Request
 from typing import Optional
 from datetime import datetime
-from bson import ObjectId
-from config.db import apiAnalyticsCollection, userCollection
-from models.user import User
-from models.api_analytics import ApiAnalytics
+from utils.dbCalls.user_db import find_user_by_id, check_user_permissions
+from utils.dbCalls.analytics_db import create_analytics_entry
 from services.authService import auth_service
 from utils.api_tracking import track_external_api_call
 from utils.auth import authenticate_request
@@ -91,36 +89,40 @@ async def verification_advanced(request: Request, data: VerificationRequest):
             raise HTTPException(status_code=401, detail="Authentication required")
 
         # Get user
-        user_doc = await userCollection.find_one({"_id": ObjectId(decoded["id"])})
+        user_doc = await find_user_by_id(decoded["id"])
         if not user_doc:
             print(f"User not found for ID: {decoded['id']}")
             raise HTTPException(status_code=401, detail="User not found")
 
-        user = User.model_construct(**user_doc)
-        print(f"Authenticated user: {user.username} (Role: {user.role})")
+        username = user_doc.get("username", "Unknown")
+        user_role = user_doc.get("role", "user")
+        print(f"Authenticated user: {username} (Role: {user_role})")
 
         # Check permissions
-        if user.role != "superadmin" and not any(p.resource == "api-analytics" for p in user.permissions):
-            print(f"Insufficient permissions for user: {user.username}")
+        if not await check_user_permissions(user_doc, "api-analytics"):
+            print(f"Insufficient permissions for user: {username}")
             raise HTTPException(status_code=403, detail="Insufficient permissions")
 
+        # Extract user details for API calls
+        user_id = str(user_doc["_id"])
+        
         # Define API calls with priorities
         priority_api_calls = [
             {
                 "name": "PAN Plus",
-                "call": lambda: fetch_pan_plus(data.pan_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_pan_plus(data.pan_number, user_id, username, user_role),
                 "endpoint": "verification/pan-plus",
                 "priority": "HIGH",
             },
             {
                 "name": "Mobile to Name",
-                "call": lambda: fetch_mobile_to_name(data.mobile_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_mobile_to_name(data.mobile_number, user_id, username, user_role),
                 "endpoint": "mobile-intelligence/mobile-to-name",
                 "priority": "HIGH",
             },
             {
                 "name": "PAN to UAN",
-                "call": lambda: fetch_pan_to_uan(data.pan_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_pan_to_uan(data.pan_number, user_id, username, user_role),
                 "endpoint": "verification/epfo/pan-to-uan",
                 "priority": "HIGH",
             },
@@ -129,13 +131,13 @@ async def verification_advanced(request: Request, data: VerificationRequest):
         secondary_api_calls = [
             {
                 "name": "Mobile Network Details",
-                "call": lambda: fetch_mobile_network_details(data.mobile_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_mobile_network_details(data.mobile_number, user_id, username, user_role),
                 "endpoint": "mobile-intelligence/mobile-to-network-details",
                 "priority": "MEDIUM",
             },
             {
                 "name": "PAN to Father Name",
-                "call": lambda: fetch_pan_to_father_name(data.pan_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_pan_to_father_name(data.pan_number, user_id, username, user_role),
                 "endpoint": "verification/pan-to-fathername",
                 "priority": "MEDIUM",
             },
@@ -144,7 +146,7 @@ async def verification_advanced(request: Request, data: VerificationRequest):
         expensive_api_calls = [
             {
                 "name": "Credit Report",
-                "call": lambda: fetch_credit_score(data.name, data.pan_number, data.mobile_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_credit_score(data.name, data.pan_number, data.mobile_number, user_id, username, user_role),
                 "endpoint": "financial-services/credit-bureau/credit-report",
                 "priority": "LOW",
             },
@@ -240,14 +242,14 @@ async def verification_advanced(request: Request, data: VerificationRequest):
             if uan_number:
                 additional_api_calls.append({
                     "name": "UAN Employment History",
-                    "call": lambda: fetch_uan_employment_history(uan_number, str(user_doc["_id"]), user.username, user.role),
+                    "call": lambda: fetch_uan_employment_history(uan_number, user_id, username, user_role),
                     "endpoint": "verification/epfo/uan-to-employment-history",
                 })
 
             # Add PAN MSME Check
             additional_api_calls.append({
                 "name": "PAN MSME Check",
-                "call": lambda: fetch_pan_msme_check(data.pan_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_pan_msme_check(data.pan_number, user_id, username, user_role),
                 "endpoint": "verification/pan-msme-check",
             })
 

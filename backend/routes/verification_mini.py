@@ -2,9 +2,8 @@ from fastapi import APIRouter, HTTPException, Request
 from typing import Optional, List
 from datetime import datetime
 from bson import ObjectId
-from config.db import apiAnalyticsCollection, userCollection
-from models.user import User
-from models.api_analytics import ApiAnalytics
+from utils.dbCalls.user_db import find_user_by_id, check_user_permissions
+from utils.dbCalls.analytics_db import create_analytics_entry
 from services.authService import auth_service
 from utils.api_tracking import track_external_api_call
 from utils.auth import authenticate_request
@@ -157,13 +156,14 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
             raise HTTPException(status_code=401, detail="Authentication required")
 
         # Get user
-        user_doc = await userCollection.find_one({"_id": ObjectId(decoded["id"])})
+        user_doc = await find_user_by_id(decoded["id"])
         if not user_doc:
             print(f"User not found for ID: {decoded['id']}")
             raise HTTPException(status_code=401, detail="User not found")
 
-        user = User.model_construct(**user_doc)
-        print(f"Authenticated user: {user.username} (Role: {user.role})")
+        username = user_doc.get("username", "Unknown")
+        user_role = user_doc.get("role", "user")
+        print(f"Authenticated user: {username} (Role: {user_role})")
 
         # Validate required fields
         if not data.name or not data.dob or not data.mobile:
@@ -200,8 +200,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                 await process_mobile_to_pan_verification(
                     data.mobile,
                     str(user_doc["_id"]),
-                    user.username,
-                    user.role,
+                    username,
+                    user_role,
                     verification_results
                 )
 
@@ -226,8 +226,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     await process_aadhaar_verification(
                         data.aadhaar_number,
                         str(user_doc["_id"]),
-                        user.username,
-                        user.role,
+                        username,
+                        user_role,
                         verification_results
                     )
 
@@ -238,8 +238,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         await process_pan_verification(
                             pan_to_verify,
                             str(user_doc["_id"]),
-                            user.username,
-                            user.role,
+                            username,
+                            user_role,
                             verification_results
                         )
 
@@ -248,8 +248,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         data.dl_number,
                         formatted_dob,
                         str(user_doc["_id"]),
-                        user.username,
-                        user.role,
+                        username,
+                        user_role,
                         verification_results
                     )
 
@@ -257,8 +257,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     await process_rc_advanced_verification(
                         data.rc_number,
                         str(user_doc["_id"]),
-                        user.username,
-                        user.role,
+                        username,
+                        user_role,
                         verification_results
                     )
 
@@ -266,8 +266,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     await process_rc_challan_verification(
                         data.rc_number,
                         str(user_doc["_id"]),
-                        user.username,
-                        user.role,
+                        username,
+                        user_role,
                         verification_results
                     )
 
@@ -278,8 +278,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         uan_result = await process_pan_to_uan_verification(
                             pan_for_uan,
                             str(user_doc["_id"]),
-                            user.username,
-                            user.role,
+                            username,
+                            user_role,
                             verification_results
                         )
 
@@ -290,8 +290,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                             await process_employment_history_verification(
                                 uan_result["uanNumber"],
                                 str(user_doc["_id"]),
-                                user.username,
-                                user.role,
+                                username,
+                                user_role,
                                 verification_results
                             )
 
@@ -299,8 +299,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     uan_result = await process_aadhaar_to_uan_verification(
                         data.aadhaar_number,
                         str(user_doc["_id"]),
-                        user.username,
-                        user.role,
+                        username,
+                        user_role,
                         verification_results
                     )
 
@@ -311,8 +311,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         await process_employment_history_verification(
                             uan_result["uanNumber"],
                             str(user_doc["_id"]),
-                            user.username,
-                            user.role,
+                            username,
+                            user_role,
                             verification_results
                         )
 
@@ -322,8 +322,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         uan_result = await process_mobile_to_uan_verification(
                             mobile_for_uan,
                             str(user_doc["_id"]),
-                            user.username,
-                            user.role,
+                            username,
+                            user_role,
                             verification_results
                         )
 
@@ -334,8 +334,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                             await process_employment_history_verification(
                                 uan_result["uanNumber"],
                                 str(user_doc["_id"]),
-                                user.username,
-                                user.role,
+                                username,
+                                user_role,
                                 verification_results
                             )
 
@@ -345,8 +345,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         await process_mnrl_verification(
                             mobile_for_mnrl,
                             str(user_doc["_id"]),
-                            user.username,
-                            user.role,
+                            username,
+                            user_role,
                             verification_results
                         )
 
@@ -356,8 +356,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         await process_voter_id_verification(
                             epic_number,
                             str(user_doc["_id"]),
-                            user.username,
-                            user.role,
+                            username,
+                            user_role,
                             verification_results
                         )
 
@@ -368,8 +368,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                             file_number,
                             formatted_dob,
                             str(user_doc["_id"]),
-                            user.username,
-                            user.role,
+                            username,
+                            user_role,
                             verification_results
                         )
 
@@ -378,8 +378,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         data.bankAccount,
                         data.ifscCode,
                         str(user_doc["_id"]),
-                        user.username,
-                        user.role,
+                        username,
+                        user_role,
                         verification_results
                     )
 
@@ -388,8 +388,8 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         data.upi,
                         data.name,
                         str(user_doc["_id"]),
-                        user.username,
-                        user.role,
+                        username,
+                        user_role,
                         verification_results
                     )
 

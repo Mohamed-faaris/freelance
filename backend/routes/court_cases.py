@@ -754,8 +754,8 @@ async def get_current_user(request: Request):
         raise HTTPException(status_code=401, detail="Invalid token")
 
     # Get user document from database
-    from config.db import userCollection
-    user_doc = await userCollection.find_one({"_id": ObjectId(user_id)})
+    from utils.dbCalls.user_db import find_user_by_id
+    user_doc = await find_user_by_id(user_id)
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
 

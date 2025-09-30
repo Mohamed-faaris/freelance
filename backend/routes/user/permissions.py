@@ -1,8 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
-from models.user import User
-from config.db import userCollection
 from schemas.user import userEntity, PermissionQuery, UpdatePermissionsRequest, PermissionResponse, UpdatePermissionsResponse
-from bson import ObjectId
+from utils.dbCalls.user_db import find_user_by_id, find_users_by_query, update_user_permissions
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -17,7 +15,7 @@ async def get_permissions(
     try:
         # If a specific user is requested, return their permissions
         if userId:
-            user = await userCollection.find_one({"_id": ObjectId(userId)})
+            user = await find_user_by_id(userId)
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             return PermissionResponse(permissions=user.get("permissions", []))
@@ -31,7 +29,7 @@ async def get_permissions(
             query["permissions.resource"] = resource
 
         # Get users matching the query
-        users = await userCollection.find(query).to_list(length=None)
+        users = await find_users_by_query(query)
 
         # Extract and flatten permissions
         all_permissions = []
@@ -62,16 +60,7 @@ async def update_permissions(request: UpdatePermissionsRequest):
 
         
         # Update user permissions
-        update_data = {
-            "permissions": request.permissions,
-            "updatedAt": datetime.now(timezone.utc)
-        }
-
-        updated_user = await userCollection.find_one_and_update(
-            {"_id": ObjectId(request.userId)},
-            {"$set": update_data},
-            return_document=True
-        )
+        updated_user = await update_user_permissions(request.userId, request.permissions)
 
         if not updated_user:
             raise HTTPException(status_code=404, detail="User not found")

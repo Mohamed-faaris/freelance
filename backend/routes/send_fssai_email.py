@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from typing import Dict, Any, Optional
 from bson import ObjectId
-from config.db import userCollection
+from utils.dbCalls.user_db import find_user_by_id
 from utils.auth import authenticate_request
 from services.mailService import send_business_verification_email
 
@@ -21,7 +21,7 @@ async def send_fssai_email(request: Request, data: Dict[str, Any]):
     try:
         # Get user details
         user_id = user["id"]
-        user_doc = await userCollection.find_one({"_id": ObjectId(user_id)})
+        user_doc = await find_user_by_id(user_id)
 
         if not user_doc:
             raise HTTPException(status_code=401, detail="User not found")

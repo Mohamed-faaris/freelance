@@ -2,8 +2,19 @@ from fastapi import APIRouter, HTTPException, Request, Query
 from typing import Optional
 from datetime import datetime, timedelta
 from bson import ObjectId
-from config.db import apiAnalyticsCollection, userCollection
-from models.user import User
+from utils.dbCalls.user_db import find_user_by_id, check_user_permissions
+from utils.dbCalls.analytics_db import (
+    get_analytics_total_usage,
+    get_analytics_daily_usage,
+    get_analytics_service_breakdown,
+    get_analytics_user_usage,
+    get_analytics_profile_type_counts,
+    get_analytics_top_endpoints,
+    get_analytics_logs_paginated,
+    count_analytics_logs,
+    build_analytics_filter,
+    format_analytics_logs_for_response
+)
 import jwt
 import os
 
@@ -37,14 +48,12 @@ async def get_analytics(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     # Get user
-    user_doc = await userCollection.find_one({"_id": ObjectId(decoded["id"])})
+    user_doc = await find_user_by_id(decoded["id"])
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
 
-    user = User.model_construct(**user_doc)
-
     # Check permissions
-    if user.role != "superadmin" and not any(p.resource == "api-analytics" for p in user.permissions):
+    if not await check_user_permissions(user_doc, "api-analytics"):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
     # Parse dates
@@ -59,92 +68,15 @@ async def get_analytics(
     end = end.replace(hour=23, minute=59, second=59, microsecond=999999)
 
     # Build filter
-    filter_ = {
-        "createdAt": {"$gte": start, "$lte": end}
-    }
-    if userId:
-        filter_["userId"] = ObjectId(userId)
-    if service:
-        filter_["service"] = service
-    if endpoint:
-        filter_["endpoint"] = endpoint
-    if profileType:
-        filter_["profileType"] = profileType
+    filter_ = build_analytics_filter(start, end, userId, service, endpoint, profileType)
 
     # Aggregations
-    total_usage = await apiAnalyticsCollection.aggregate([
-        {"$match": filter_},
-        {
-            "$group": {
-                "_id": None,
-                "totalCalls": {"$sum": 1},
-                "totalCost": {"$sum": "$cost"},
-                "avgResponseTime": {"$avg": "$responseTime"},
-            },
-        },
-    ]).to_list(length=None)
-
-    daily_usage = await apiAnalyticsCollection.aggregate([
-        {"$match": filter_},
-        {
-            "$group": {
-                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$createdAt"}},
-                "calls": {"$sum": 1},
-                "cost": {"$sum": "$cost"},
-            },
-        },
-        {"$sort": {"_id": 1}},
-    ]).to_list(length=None)
-
-    service_breakdown = await apiAnalyticsCollection.aggregate([
-        {"$match": filter_},
-        {
-            "$group": {
-                "_id": "$service",
-                "calls": {"$sum": 1},
-                "cost": {"$sum": "$cost"},
-            },
-        },
-        {"$sort": {"calls": -1}},
-    ]).to_list(length=None)
-
-    user_usage = await apiAnalyticsCollection.aggregate([
-        {"$match": filter_},
-        {
-            "$group": {
-                "_id": {"userId": "$userId", "username": "$username"},
-                "calls": {"$sum": 1},
-                "cost": {"$sum": "$cost"},
-            },
-        },
-        {"$sort": {"cost": -1}},
-        {"$limit": 10},
-    ]).to_list(length=None)
-
-    profile_type_counts = await apiAnalyticsCollection.aggregate([
-        {"$match": {**filter_, "profileType": {"$ne": None}}},
-        {
-            "$group": {
-                "_id": "$profileType",
-                "count": {"$sum": 1},
-                "cost": {"$sum": "$cost"},
-            },
-        },
-    ]).to_list(length=None)
-
-    top_endpoints = await apiAnalyticsCollection.aggregate([
-        {"$match": filter_},
-        {
-            "$group": {
-                "_id": "$endpoint",
-                "calls": {"$sum": 1},
-                "cost": {"$sum": "$cost"},
-                "avgResponseTime": {"$avg": "$responseTime"},
-            },
-        },
-        {"$sort": {"calls": -1}},
-        {"$limit": 15},
-    ]).to_list(length=None)
+    total_usage = await get_analytics_total_usage(filter_)
+    daily_usage = await get_analytics_daily_usage(filter_)
+    service_breakdown = await get_analytics_service_breakdown(filter_)
+    user_usage = await get_analytics_user_usage(filter_, limit=10)
+    profile_type_counts = await get_analytics_profile_type_counts(filter_)
+    top_endpoints = await get_analytics_top_endpoints(filter_, limit=15)
 
     # Convert ObjectId to str for serialization
     for item in user_usage:
@@ -189,14 +121,14 @@ async def get_analytics_logs(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     # Get user
-    user_doc = await userCollection.find_one({"_id": ObjectId(decoded["id"])})
+    user_doc = await find_user_by_id(decoded["id"])
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
 
-    user = User.model_construct(**user_doc)
+    
 
     # Check permissions
-    if user.role != "superadmin" and not any(p.resource == "api-analytics" for p in user.permissions):
+    if not await check_user_permissions(user_doc, "api-analytics"):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
     # Parse dates
@@ -211,45 +143,17 @@ async def get_analytics_logs(
     end = end.replace(hour=23, minute=59, second=59, microsecond=999999)
 
     # Build filter
-    filter_ = {
-        "createdAt": {"$gte": start, "$lte": end}
-    }
-    if userId:
-        filter_["userId"] = ObjectId(userId)
-    if service:
-        filter_["service"] = service
-    if endpoint:
-        filter_["endpoint"] = endpoint
-    if profileType:
-        filter_["profileType"] = profileType
+    filter_ = build_analytics_filter(start, end, userId, service, endpoint, profileType)
 
     try:
         # Get logs with pagination
-        skip = (page - 1) * limit
-        logs_cursor = apiAnalyticsCollection.find(filter_).sort("createdAt", -1).skip(skip).limit(limit)
+        logs_list = await get_analytics_logs_paginated(filter_, page, limit)
         
-        # Convert cursor to list
-        logs_list = await logs_cursor.to_list(length=None)
-        
-        # Get logs
-        logs = []
-        for log in logs_list:
-            logs.append({
-                "timestamp": log["createdAt"],
-                "userId": str(log["userId"]),
-                "username": log.get("username", ""),
-                "userRole": log.get("userRole", ""),
-                "service": log.get("service", ""),
-                "endpoint": log.get("endpoint", ""),
-                "apiVersion": log.get("apiVersion", "v1"),
-                "cost": log.get("cost", 0.0),
-                "statusCode": log.get("statusCode", 0),
-                "responseTime": log.get("responseTime", 0.0),
-                "profileType": log.get("profileType"),
-            })
+        # Format logs for response
+        logs = format_analytics_logs_for_response(logs_list)
 
         # Get total count for pagination
-        total_count = apiAnalyticsCollection.count_documents(filter_)
+        total_count = await count_analytics_logs(filter_)
 
         return {
             "logs": logs,

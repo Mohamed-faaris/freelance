@@ -3,7 +3,7 @@ import os
 from fastapi import HTTPException, Request
 from typing import Optional, Dict, Any
 from bson import ObjectId
-from config.db import userCollection
+from utils.dbCalls.user_db import find_user_by_id
 
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
 
@@ -53,7 +53,7 @@ async def get_authenticated_user(request: Request) -> Dict[str, Any]:
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    user_doc = await userCollection.find_one({"_id": ObjectId(user_id)})
+    user_doc = await find_user_by_id(user_id)
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found")
 

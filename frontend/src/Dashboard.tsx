@@ -185,12 +185,12 @@ export default function Dashboard() {
       icon: Building2,
       requiredPermission: { resource: "business" },
     },
-    {
-      id: "fssai-verification",
-      label: "FSSAI Verification",
-      icon: Building2,
-      requiredPermission: { resource: "fssai-verification" },
-    },
+    // {
+    //   id: "fssai-verification",
+    //   label: "FSSAI Verification",
+    //   icon: Building2,
+    //   requiredPermission: { resource: "fssai-verification" },
+    // },
 
     ...(user?.role === "superadmin" || user?.role === "admin"
       ? [
@@ -213,18 +213,18 @@ export default function Dashboard() {
           },
         ]
       : []),
-    {
-      id: "education-verification",
-      label: "Education Verification",
-      icon: BookOpen,
-      requiredPermission: { resource: "education-verification" },
-    },
-    {
-      id: "advanced-search",
-      label: "Advanced Search",
-      icon: SearchCheckIcon,
-      requiredPermission: { resource: "advanced-search" },
-    },
+    // {
+    //   id: "education-verification",
+    //   label: "Education Verification",
+    //   icon: BookOpen,
+    //   requiredPermission: { resource: "education-verification" },
+    // },
+    // {
+    //   id: "advanced-search",
+    //   label: "Advanced Search",
+    //   icon: SearchCheckIcon,
+    //   requiredPermission: { resource: "advanced-search" },
+    // },
   ];
 
   // Check if tab is allowed based on user permissions
@@ -392,18 +392,18 @@ export default function Dashboard() {
         return <PersonalProfileForm />;
       case "business":
         return <BusinessProfileForm />;
-      case "fssai-verification":
-        return <FassaiProfilePage />;
+      // case "fssai-verification":
+      //   return <FassaiProfilePage />;
       case "news":
         return <NewsTab searchQuery={searchQuery} />;
       case "user-management":
         return <UserManagement />;
       case "api-analytics":
         return <ApiAnalytics />;
-      case "education-verification":
-        return <EducationVerification />;
-      case "advanced-search":
-        return <AdvancedSearch />;
+      // case "education-verification":
+      //   return <EducationVerification />;
+      // case "advanced-search":
+      //   return <AdvancedSearch />;
       default:
         return <div>Tab not found</div>;
     }

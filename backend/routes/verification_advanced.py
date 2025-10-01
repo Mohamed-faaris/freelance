@@ -104,7 +104,7 @@ async def verification_advanced(request: Request, data: VerificationRequest):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
 
         # Extract user details for API calls
-        user_id = str(user_doc["_id"])
+        user_id = str(user_doc["id"])
         
         # Define API calls with priorities
         priority_api_calls = [
@@ -237,7 +237,7 @@ async def verification_advanced(request: Request, data: VerificationRequest):
         if remaining_time3 > 8000:
             # Extract UAN for employment history
             uan_response = next((r for r in all_responses if r["name"] == "PAN to UAN"), None)
-            uan_number = uan_response.get("response", {}).get("data", {}).get("uan_number") if uan_response else None
+            uan_number = uan_response.get("response", {}).get("uan_number") if uan_response else None
 
             if uan_number:
                 additional_api_calls.append({

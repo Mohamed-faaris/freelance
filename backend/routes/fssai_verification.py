@@ -82,7 +82,7 @@ async def post_business_verification(request: Request, data: Dict[str, Any]):
             try:
                 gst_data = await fetch_gst_basic(
                     gstin.strip(),
-                    str(user_doc["_id"]),
+                    str(user_doc["id"]),
                     user_doc.get("username", ""),
                     user_doc.get("role", "")
                 )
@@ -95,7 +95,7 @@ async def post_business_verification(request: Request, data: Dict[str, Any]):
             try:
                 fssai_data = await fetch_fssai(
                     fssai_id.strip(),
-                    str(user_doc["_id"]),
+                    str(user_doc["id"]),
                     user_doc.get("username", ""),
                     user_doc.get("role", "")
                 )

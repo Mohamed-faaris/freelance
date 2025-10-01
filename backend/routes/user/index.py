@@ -43,9 +43,6 @@ async def get_all_users():
     return {"users": serializeList(users)}
 
 
-# @user.get('/{id}')
-# async def find_one_user(id):
-#     return serializeDict(userCollection.find_one({"_id":ObjectId(id)}))
 
 
 @userRoute.post("")

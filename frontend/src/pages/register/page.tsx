@@ -1,12 +1,21 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import AuthHeader from "../../components/AuthHeader"; // Adjust the import path as needed
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL } from "../../../config";
 
 export default function RegisterPage() {
   console.log("RegisterPage render");
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Redirect if already authenticated
+  if (!isLoading && isAuthenticated) {
+    navigate("/");
+    return null;
+  }
+
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -15,7 +24,6 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

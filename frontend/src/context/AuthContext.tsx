@@ -41,6 +41,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           },
           credentials: "include", // Ensure cookies are sent
         });
+
+        if (!res.ok) {
+          if (res.status === 401) {
+            setUser(null);
+            navigate("/login");
+            return;
+          } else {
+            throw new Error("Auth check failed");
+          }
+        }
+
         const data = await res.json();
         console.log("Auth check response data:", data); // Debugging line
         if (data.user) {
@@ -61,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     checkAuth();
-  }, []);
+  }, [navigate]);
 
   // Modify the login function
   const login = async (email: string, password: string) => {
@@ -120,6 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch(`${API_URL}/auth/logout`, {
         method: "POST",
+        credentials: "include",
       });
 
       if (!res.ok) {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   User,
   Building2,
@@ -34,6 +35,7 @@ import { useTheme } from "./context/ThemeContext";
 import { API_URL } from "../config";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("news"); // Default to news tab
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
@@ -53,7 +55,14 @@ export default function Dashboard() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const { darkMode, toggleDarkMode } = useTheme();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate("/login");
+    }
+  }, [isLoading, isAuthenticated, navigate]);
 
   // Check if it's mobile on initial load and when window is resized
   useEffect(() => {
@@ -230,7 +239,7 @@ export default function Dashboard() {
   // Check if tab is allowed based on user permissions
   const isTabAllowed = (item: NavItem): boolean => {
     // Superadmin and admin can access everything
-    if (user?.role === "superadmin" ) return true;
+    if (user?.role === "superadmin") return true;
 
     // If no permission requirement, it's publicly accessible
     if (!item.requiredPermission) return true;

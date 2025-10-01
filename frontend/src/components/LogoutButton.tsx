@@ -1,27 +1,15 @@
 import { useState } from "react";
 import { LogOut } from "lucide-react";
-const API_URL = import.meta.env.VITE_API_URL;
+import { useAuth } from "../context/AuthContext";
 
 export default function LogoutButton({ className }: { className?: string }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      // Call logout API
-      await fetch(`${API_URL}/auth`, {
-        method: "DELETE",
-      });
-
-      // 🗑️ Clear localStorage data
-      localStorage.removeItem("userEmail");
-      localStorage.removeItem("userUsername");
-      localStorage.removeItem("userId");
-
-      console.log("User data cleared from localStorage");
-
-      // Redirect to login
-      window.location.href = "/login";
+      await logout();
     } catch (error) {
       console.error("Logout error:", error);
     } finally {

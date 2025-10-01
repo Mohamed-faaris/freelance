@@ -48,6 +48,7 @@ const TextField: FC<InputProps> = ({
 /* ---------- Page ---------- */
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { login, isAuthenticated, isLoading } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -55,36 +56,18 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Redirect if already authenticated
+  if (!isLoading && isAuthenticated) {
+    navigate("/");
+    return null;
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API_URL}/auth`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-        credentials: "include",
-      });
-      const data = await response.json();
-      console.log("Login response data:", data); // Debugging line
-
-      if (!response.ok) throw new Error(data.error || "Authentication failed");
-
-      // 📧 Store user email and username in localStorage after successful login
-      if (data.success && data.user) {
-        localStorage.setItem("userEmail", data.user.email);
-        localStorage.setItem("userUsername", data.user.username);
-        localStorage.setItem("userId", data.user.id);
-
-        console.log("User data stored in localStorage:", {
-          email: data.user.email,
-          username: data.user.username,
-          id: data.user.id,
-        });
-      }
-
-      navigate("/");
+      await login(formData.email, formData.password);
     } catch (err: any) {
       setError(err.message);
     } finally {

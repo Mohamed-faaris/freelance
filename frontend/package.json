@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:80":"npm run dev -- --host 0.0.0.0 --port 80",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

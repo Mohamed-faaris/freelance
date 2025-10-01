@@ -16,16 +16,16 @@ class MailConfig:
     """Mail service configuration"""
 
     # SMTP Configuration
-    SMTP_SERVER = os.getenv("SMTP_HOST", "smtp.gmail.com")
-    SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-    SMTP_USERNAME = os.getenv("USER")
-    SMTP_PASSWORD = os.getenv("PASS")
-    SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "false").lower() == "true"  # Gmail port 465 uses SSL, not TLS
-    SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "true").lower() == "true"   # Gmail port 465 uses SSL
+    SMTP_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+    SMTP_PORT = int(os.getenv("MAIL_PORT", "465"))
+    SMTP_USERNAME = os.getenv("MAIL_USERNAME")
+    SMTP_PASSWORD = os.getenv("MAIL_PASSWORD")
+    SMTP_USE_TLS = os.getenv("MAIL_STARTTLS", "false").lower() == "true"
+    SMTP_USE_SSL = os.getenv("MAIL_SSL_TLS", "true").lower() == "true"
 
     # Email Configuration
-    FROM_EMAIL = os.getenv("FROM_EMAIL", SMTP_USERNAME)
-    FROM_NAME = os.getenv("FROM_NAME", "Argus")
+    FROM_EMAIL = os.getenv("MAIL_FROM", SMTP_USERNAME)
+    FROM_NAME = os.getenv("MAIL_FROM_NAME", "Argus")
 
     # Service Configuration
     ENABLE_MAILING = os.getenv("ENABLE_MAILING", "true").lower() == "true"

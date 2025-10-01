@@ -8,7 +8,7 @@
     "install-both": "concurrently \"cd backend && pip install -r requirements.txt\" \"cd frontend && pnpm install\"",
     "seed": "cd backend && python seeder.py",
     "dev": "concurrently \"cd backend && uvicorn index:app --reload \" \"cd frontend && pnpm dev\"",
-    "dev:80": "concurrently \"cd backend && uvicorn index:app --reload \" \"cd frontend && pnpm dev:80\"",
+    "dev:80": "concurrently \"cd backend &&  uvicorn index:app --reload --host 0.0.0.0 --port 8000 \" \"cd frontend && pnpm dev:80\"",
     "dev-frontend": "cd frontend && pnpm dev",
     "dev-backend": "cd backend && uvicorn index:app --reload",
     "dev-backend-micro": "run 3 micro services concurrently AND nginx",

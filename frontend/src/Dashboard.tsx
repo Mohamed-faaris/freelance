@@ -119,7 +119,7 @@ export default function Dashboard() {
 
       try {
         const response = await fetch(
-          `${API_URL}/users/permissions?userId=${user?.id}`
+          `${API_URL}/users/permissions?userId=${encodeURIComponent(user?.id || '')}`
         );
         if (!response.ok) throw new Error("Failed to fetch permissions");
 

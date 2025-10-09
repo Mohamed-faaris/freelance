@@ -7,46 +7,48 @@ A comprehensive guide for building consistent, accessible, and beautiful UI in t
 ## 1. Color System
 
 ### Light Mode
-| Name         | Hex        | Usage                          |
-|--------------|------------|--------------------------------|
-| Primary      | #1A73E8    | Buttons, links, highlights     |
-| Secondary    | #F1F3F4    | Backgrounds, cards, inputs     |
-| Accent       | #34A853    | Success, active states         |
-| Error        | #EA4335    | Error messages, alerts         |
-| Warning      | #FBBC05    | Warnings, notifications        |
-| Info         | #4285F4    | Info banners, tooltips         |
-| Text Main    | #202124    | Main text                      |
-| Text Muted   | #5F6368    | Secondary text, placeholders   |
-| Border       | #E0E0E0    | Dividers, input borders        |
-| Background   | #FFFFFF    | Page background                |
+
+| Name       | Hex     | Usage                        |
+| ---------- | ------- | ---------------------------- |
+| Primary    | #1A73E8 | Buttons, links, highlights   |
+| Secondary  | #F1F3F4 | Backgrounds, cards, inputs   |
+| Accent     | #34A853 | Success, active states       |
+| Error      | #EA4335 | Error messages, alerts       |
+| Warning    | #FBBC05 | Warnings, notifications      |
+| Info       | #4285F4 | Info banners, tooltips       |
+| Text Main  | #202124 | Main text                    |
+| Text Muted | #5F6368 | Secondary text, placeholders |
+| Border     | #E0E0E0 | Dividers, input borders      |
+| Background | #FFFFFF | Page background              |
 
 ### Dark Mode
-| Name         | Hex        | Usage                          |
-|--------------|------------|--------------------------------|
-| Primary      | #8AB4F8    | Buttons, links, highlights     |
-| Secondary    | #303134    | Backgrounds, cards, inputs     |
-| Accent       | #81C995    | Success, active states         |
-| Error        | #FF6D6D    | Error messages, alerts         |
-| Warning      | #FFD666    | Warnings, notifications        |
-| Info         | #AECBFA    | Info banners, tooltips         |
-| Text Main    | #E8EAED    | Main text                      |
-| Text Muted   | #B0B3B8    | Secondary text, placeholders   |
-| Border       | #5F6368    | Dividers, input borders        |
-| Background   | #202124    | Page background                |
+
+| Name       | Hex     | Usage                        |
+| ---------- | ------- | ---------------------------- |
+| Primary    | #8AB4F8 | Buttons, links, highlights   |
+| Secondary  | #303134 | Backgrounds, cards, inputs   |
+| Accent     | #81C995 | Success, active states       |
+| Error      | #FF6D6D | Error messages, alerts       |
+| Warning    | #FFD666 | Warnings, notifications      |
+| Info       | #AECBFA | Info banners, tooltips       |
+| Text Main  | #E8EAED | Main text                    |
+| Text Muted | #B0B3B8 | Secondary text, placeholders |
+| Border     | #5F6368 | Dividers, input borders      |
+| Background | #202124 | Page background              |
 
 ---
 
 ## 2. Typography
 
-| Style         | Font Family         | Weight | Size   | Usage                       |
-|---------------|--------------------|--------|--------|-----------------------------|
-| Heading 1     | 'Inter', sans-serif| 700    | 2.25rem| Page titles                 |
-| Heading 2     | 'Inter', sans-serif| 600    | 1.5rem | Section headers             |
-| Heading 3     | 'Inter', sans-serif| 500    | 1.25rem| Subsection headers          |
-| Body          | 'Inter', sans-serif| 400    | 1rem   | Main content                |
-| Caption       | 'Inter', sans-serif| 400    | 0.875rem| Helper text, labels         |
-| Button        | 'Inter', sans-serif| 600    | 1rem   | Button text                 |
-| Code          | 'Fira Mono', monospace| 400 | 0.95rem| Inline code, code blocks    |
+| Style     | Font Family            | Weight | Size     | Usage                    |
+| --------- | ---------------------- | ------ | -------- | ------------------------ |
+| Heading 1 | 'Inter', sans-serif    | 700    | 2.25rem  | Page titles              |
+| Heading 2 | 'Inter', sans-serif    | 600    | 1.5rem   | Section headers          |
+| Heading 3 | 'Inter', sans-serif    | 500    | 1.25rem  | Subsection headers       |
+| Body      | 'Inter', sans-serif    | 400    | 1rem     | Main content             |
+| Caption   | 'Inter', sans-serif    | 400    | 0.875rem | Helper text, labels      |
+| Button    | 'Inter', sans-serif    | 600    | 1rem     | Button text              |
+| Code      | 'Fira Mono', monospace | 400    | 0.95rem  | Inline code, code blocks |
 
 - **Line Height:** 1.5 for body, 1.2 for headings
 - **Letter Spacing:** 0.01em for body, 0.02em for headings
@@ -84,6 +86,7 @@ A comprehensive guide for building consistent, accessible, and beautiful UI in t
 ## 5. Component Patterns & Examples
 
 ### 5.1 Button
+
 ```tsx
 <button className="bg-[#1A73E8] text-white rounded-md px-4 py-2 font-semibold hover:bg-[#287ae6] focus:outline-none focus:ring-2 focus:ring-[#1A73E8] disabled:opacity-60 transition-all duration-200">
   Primary Button
@@ -91,6 +94,7 @@ A comprehensive guide for building consistent, accessible, and beautiful UI in t
 ```
 
 ### 5.2 Card
+
 ```tsx
 <div className="bg-white dark:bg-[#303134] rounded-2xl shadow p-6 border border-gray-200 dark:border-[#5F6368]">
   <h2 className="text-xl font-semibold mb-2">Card Title</h2>
@@ -99,11 +103,13 @@ A comprehensive guide for building consistent, accessible, and beautiful UI in t
 ```
 
 ### 5.3 Input Field
+
 ```tsx
 <input className="w-full rounded-lg border border-gray-300 dark:border-[#5F6368] px-3 py-2 text-base text-gray-900 dark:text-[#E8EAED] bg-transparent focus:border-blue-600 focus:outline-none transition-colors duration-300" />
 ```
 
 ### 5.4 Alert
+
 ```tsx
 <div className="bg-[#EA4335] text-white rounded-md px-4 py-2 font-medium">
   Error: Something went wrong!
@@ -111,6 +117,7 @@ A comprehensive guide for building consistent, accessible, and beautiful UI in t
 ```
 
 ### 5.5 Modal
+
 ```tsx
 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
   <div className="bg-white dark:bg-[#303134] rounded-xl p-8 shadow-lg w-full max-w-md">
@@ -122,6 +129,7 @@ A comprehensive guide for building consistent, accessible, and beautiful UI in t
 ```
 
 ### 5.6 Toast
+
 ```tsx
 <div className="fixed bottom-6 right-6 bg-[#34A853] text-white px-4 py-2 rounded shadow-lg animate-fadeIn">
   Success! Your changes have been saved.
@@ -129,18 +137,32 @@ A comprehensive guide for building consistent, accessible, and beautiful UI in t
 ```
 
 ### 5.7 Navigation Bar
+
 ```tsx
 <nav className="bg-white dark:bg-[#202124] border-b border-gray-200 dark:border-[#5F6368] px-6 py-3 flex items-center justify-between">
   <div className="font-bold text-blue-600 dark:text-[#8AB4F8]">ARGUS</div>
   <ul className="flex gap-6 text-gray-700 dark:text-[#B0B3B8]">
-    <li><a href="/" className="hover:text-blue-600">Home</a></li>
-    <li><a href="/dashboard" className="hover:text-blue-600">Dashboard</a></li>
-    <li><a href="/profile" className="hover:text-blue-600">Profile</a></li>
+    <li>
+      <a href="/" className="hover:text-blue-600">
+        Home
+      </a>
+    </li>
+    <li>
+      <a href="/dashboard" className="hover:text-blue-600">
+        Dashboard
+      </a>
+    </li>
+    <li>
+      <a href="/profile" className="hover:text-blue-600">
+        Profile
+      </a>
+    </li>
   </ul>
 </nav>
 ```
 
 ### 5.8 Table
+
 ```tsx
 <table className="min-w-full bg-white dark:bg-[#303134] rounded-lg overflow-hidden">
   <thead>
@@ -162,21 +184,32 @@ A comprehensive guide for building consistent, accessible, and beautiful UI in t
 ```
 
 ### 5.9 Avatar
+
 ```tsx
-<img src="/public/logo.png" alt="User Avatar" className="w-10 h-10 rounded-full border-2 border-blue-600" />
+<img
+  src="/public/logo.png"
+  alt="User Avatar"
+  className="w-10 h-10 rounded-full border-2 border-blue-600"
+/>
 ```
 
 ### 5.10 Tabs
+
 ```tsx
 <div className="flex gap-2 border-b border-gray-200 dark:border-[#5F6368]">
-  <button className="px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600">Tab 1</button>
-  <button className="px-4 py-2 font-medium text-gray-600 hover:text-blue-600">Tab 2</button>
+  <button className="px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600">
+    Tab 1
+  </button>
+  <button className="px-4 py-2 font-medium text-gray-600 hover:text-blue-600">
+    Tab 2
+  </button>
 </div>
 ```
 
 ---
 
 ## 6. Iconography
+
 - Use Lucide React icons for consistency
 - Size: 20px for inline, 24px for buttons
 - Color: `currentColor` for easy theming
@@ -184,6 +217,7 @@ A comprehensive guide for building consistent, accessible, and beautiful UI in t
 ---
 
 ## 7. Best Practices
+
 - Use semantic HTML for structure
 - Prefer utility classes (Tailwind) for rapid prototyping
 - Keep components stateless when possible
@@ -194,6 +228,7 @@ A comprehensive guide for building consistent, accessible, and beautiful UI in t
 ---
 
 ## 8. Resources
+
 - [Tailwind CSS Docs](https://tailwindcss.com/docs)
 - [Lucide React Icons](https://lucide.dev/icons)
 - [WCAG Accessibility Guidelines](https://www.w3.org/WAI/standards-guidelines/wcag/)

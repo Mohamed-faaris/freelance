@@ -1,26 +1,35 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
-import jwt
 import os
 import requests
 import asyncio
 from datetime import datetime
 from typing import Dict, Any, Optional
-from bson import ObjectId
-from config.db import userCollection
 from models.user import User
-from models.api_analytics import ApiAnalytics
+from utils import get_authenticated_user, track_external_api_call
+
+# Load environment variables
+import dotenv
+dotenv.load_dotenv()
+
+def get_env(name: str, default: Optional[str] = None, *, required: bool = False) -> Optional[str]:
+    """Fetch environment variable with whitespace trimming and optional requirement."""
+    value = os.getenv(name)
+    if value is not None:
+        value = value.strip()
+        if value:
+            return value
+    if default is not None:
+        return default
+    if required:
+        raise ValueError(f"{name} environment variable is required")
+    return value
+
 
 router = APIRouter()
 
-JWT_SECRET = os.getenv("JWT_SECRET")
-INSTA_USER_KEY = os.getenv("INSTA_USER_KEY")
-
-if(not JWT_SECRET):
-    raise Exception("JWT_SECRET is not configured")
-
-if(not INSTA_USER_KEY):
-    raise Exception("INSTA_USER_KEY is not configured")
+JWT_SECRET = get_env("JWT_SECRET", required=True)
+INSTA_USER_KEY = get_env("INSTA_USER_KEY", required=True)
 
 # API cost mapping for InstaFinancials
 INSTA_API_COSTS: Dict[str, float] = {
@@ -28,77 +37,8 @@ INSTA_API_COSTS: Dict[str, float] = {
     "insta-basic": 5.0,
 }
 
-def authenticate(request: Request):
-    token = request.cookies.get("auth_token")
-    if not token:
-        return None
-    try:
-        decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-        return decoded
-    except:
-        return None
-
-async def track_insta_api_call(
-    user_id: str,
-    username: str,
-    user_role: str,
-    service: str,
-    api_function,
-    *args
-):
-    start_time = datetime.utcnow()
-
-    try:
-        result = await api_function(*args)
-        response_time = (datetime.utcnow() - start_time).total_seconds() * 1000  # in milliseconds
-        cost = INSTA_API_COSTS.get(service, 5.0)
-
-        await asyncio.get_event_loop().run_in_executor(
-            None,
-            lambda: ApiAnalytics.log_api_call({
-                "userId": ObjectId(user_id),
-                "username": username,
-                "userRole": user_role,
-                "service": service,
-                "endpoint": service,
-                "apiVersion": "v1",
-                "cost": cost,
-                "statusCode": 200,
-                "responseTime": response_time,
-                "profileType": "business",
-                "requestData": args[0] if args else None,
-                "responseData": result,
-                "businessId": None,
-            })
-        )
-
-        return result
-    except Exception as error:
-        response_time = (datetime.utcnow() - start_time).total_seconds() * 1000
-        await asyncio.get_event_loop().run_in_executor(
-            None,
-            lambda: ApiAnalytics.log_api_call({
-                "userId": ObjectId(user_id),
-                "username": username,
-                "userRole": user_role,
-                "service": service,
-                "endpoint": service,
-                "apiVersion": "v1",
-                "cost": INSTA_API_COSTS.get(service, 5.0),
-                "statusCode": 500,
-                "responseTime": response_time,
-                "profileType": "business",
-                "requestData": args[0] if args else None,
-                "responseData": {
-                    "error": str(error)
-                },
-                "businessId": None,
-            })
-        )
-        raise error
-
 async def fetch_insta_financials(cin: str, service: str, user_id: str, username: str, user_role: str):
-    return await track_insta_api_call(
+    return await track_external_api_call(
         user_id,
         username,
         user_role,
@@ -123,10 +63,15 @@ async def _make_insta_api_call(cin_number: str, service_type: str):
 
     print(f"Making request to: {url}")
 
-    response = requests.get(url, headers={
-        "user-key": INSTA_USER_KEY,
-        "Content-Type": "application/json",
-    })
+    # Make the request async
+    def _sync_request():
+        response = requests.get(url, headers={
+            "user-key": INSTA_USER_KEY,
+            "Content-Type": "application/json",
+        })
+        return response
+
+    response = await asyncio.to_thread(_sync_request)
 
     if not response.ok:
         error_text = response.text
@@ -145,22 +90,23 @@ async def _make_insta_api_call(cin_number: str, service_type: str):
 
 @router.post("/")
 async def post_insta_financials(request: Request):
-    auth = authenticate(request)
+    try:
+        user_doc = await get_authenticated_user(request)
+    except HTTPException as auth_error:
+        if auth_error.status_code == 401:
+            print("Authentication failed for insta financials request")
+        raise
 
-    if not auth:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    user = User.model_validate(user_doc)
+    user_uuid = user_doc.get("_id") or user_doc.get("id")
+    if not user_uuid:
+        print(f"Authenticated user missing identifier: {user_doc}")
+        raise HTTPException(status_code=500, detail="User identifier missing")
+    user_id = str(user_uuid)
+
+    print(f"Authenticated user: {user.username} (Role: {user.role})")
 
     try:
-        user_id = auth.get("id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Authentication failed")
-
-        user_doc = await userCollection.find_one({"_id": ObjectId(user_id)})
-        if not user_doc:
-            raise HTTPException(status_code=401, detail="User not found")
-
-        # Create User instance from document
-        user = User.model_construct(**user_doc)
 
         body = await request.json()
         cin = body.get("cin")
@@ -249,10 +195,12 @@ async def post_insta_financials(request: Request):
 
 @router.get("/")
 async def get_insta_financials_health(request: Request):
-    auth = authenticate(request)
-
-    if not auth:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        await get_authenticated_user(request)
+    except HTTPException as auth_error:
+        if auth_error.status_code == 401:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        raise
 
     return JSONResponse(content={
         "message": "InstaFinancials API is running",

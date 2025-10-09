@@ -1,14 +1,10 @@
 from fastapi import APIRouter, HTTPException, Request
 from typing import Optional
 from datetime import datetime
-from bson import ObjectId
-from config.db import apiAnalyticsCollection, userCollection
 from models.user import User
-from models.api_analytics import ApiAnalytics
 from services.authService import auth_service
 from utils.api_tracking import track_external_api_call
-from utils.auth import authenticate_request
-import jwt
+from utils.auth import get_authenticated_user
 import os
 import requests
 import asyncio
@@ -17,6 +13,21 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+
+def get_env(name: str, default: Optional[str] = None, *, required: bool = False) -> Optional[str]:
+    """Fetch environment variable with whitespace trimming and optional requirement."""
+    value = os.getenv(name)
+    if value is not None:
+        value = value.strip()
+        if value:
+            return value
+    if default is not None:
+        return default
+    if required:
+        raise ValueError(f"{name} environment variable is required")
+    return value
+
 
 verificationLiteRouter = APIRouter()
 
@@ -30,32 +41,19 @@ async def _verify_pan_plus(pan_number: str):
     return await fetch_with_timeout(url, headers)
 
 # Environment variables with validation
-JWT_SECRET = os.getenv("JWT_SECRET")
-CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "https://auth.deepvue.tech")
-AUTH_SERVICE_CLIENT_ID = os.getenv("AUTH_SERVICE_CLIENT_ID")
-AUTH_SERVICE_CLIENT_SECRET = os.getenv("AUTH_SERVICE_CLIENT_SECRET")
-
-# Validate required environment variables
-if not JWT_SECRET:
-    raise ValueError("JWT_SECRET environment variable is required")
-
-if not CLIENT_SECRET:
-    raise ValueError("CLIENT_SECRET environment variable is required")
-
-if not AUTH_SERVICE_CLIENT_ID:
-    raise ValueError("AUTH_SERVICE_CLIENT_ID environment variable is required")
-
-if not AUTH_SERVICE_CLIENT_SECRET:
-    raise ValueError("AUTH_SERVICE_CLIENT_SECRET environment variable is required")
+JWT_SECRET = get_env("JWT_SECRET", required=True)
+CLIENT_SECRET = get_env("CLIENT_SECRET", required=True)
+AUTH_SERVICE_URL = get_env("AUTH_SERVICE_URL", "https://auth.deepvue.tech")
+AUTH_SERVICE_CLIENT_ID = get_env("AUTH_SERVICE_CLIENT_ID", required=True)
+AUTH_SERVICE_CLIENT_SECRET = get_env("AUTH_SERVICE_CLIENT_SECRET", required=True)
 
 # API Configuration
-BASE_URL_V1 = os.getenv("BASE_URL_V1", "https://production.deepvue.tech/v1")
-BASE_URL_V2 = os.getenv("BASE_URL_V2", "https://production.deepvue.tech/v2")
+BASE_URL_V1 = get_env("BASE_URL_V1", "https://production.deepvue.tech/v1")
+BASE_URL_V2 = get_env("BASE_URL_V2", "https://production.deepvue.tech/v2")
 
 # Additional environment variables
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-ENABLE_ANALYTICS_TRACKING = os.getenv("ENABLE_ANALYTICS_TRACKING", "true").lower() == "true"
+LOG_LEVEL = get_env("LOG_LEVEL", "INFO")
+ENABLE_ANALYTICS_TRACKING = get_env("ENABLE_ANALYTICS_TRACKING", "true").lower() == "true"
 
 # Production limits for lite version
 PRODUCTION_LIMITS = {
@@ -84,38 +82,38 @@ async def verification_lite(request: Request, data: VerificationLiteRequest):
     print(f"Starting lite verification for user with PAN: {data.pan_number[:4]}****")
 
     try:
-        # Authenticate user
-        decoded = authenticate_request(request)
-        if not decoded:
-            print("Authentication failed for lite verification request")
-            raise HTTPException(status_code=401, detail="Authentication required")
-
         # Get user
-        user_doc = await userCollection.find_one({"_id": ObjectId(decoded["id"])})
-        if not user_doc:
-            print(f"User not found for ID: {decoded['id']}")
-            raise HTTPException(status_code=401, detail="User not found")
+        try:
+            user_doc = await get_authenticated_user(request)
+        except HTTPException as auth_error:
+            if auth_error.status_code == 401:
+                print("Authentication failed for lite verification request")
+            raise
 
-        user = User.model_construct(**user_doc)
+        user = User.model_validate(user_doc)
+        user_uuid = user_doc.get("_id") or user_doc.get("id")
+        if not user_uuid:
+            print(f"Authenticated user missing identifier: {user_doc}")
+            raise HTTPException(status_code=500, detail="User identifier missing")
         print(f"Authenticated user: {user.username} (Role: {user.role})")
 
         # Define API calls with priorities for lite version
         priority_api_calls = [
             {
                 "name": "PAN Plus",
-                "call": lambda: fetch_pan_plus(data.pan_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_pan_plus(data.pan_number, str(user_uuid), user.username, user.role),
                 "endpoint": "verification/pan-plus",
                 "priority": "HIGH",
             },
             {
                 "name": "Mobile to Name",
-                "call": lambda: fetch_mobile_to_name(data.mobile_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_mobile_to_name(data.mobile_number, str(user_uuid), user.username, user.role),
                 "endpoint": "mobile-intelligence/mobile-to-name",
                 "priority": "HIGH",
             },
             {
                 "name": "PAN to UAN",
-                "call": lambda: fetch_pan_to_uan(data.pan_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_pan_to_uan(data.pan_number, str(user_uuid), user.username, user.role),
                 "endpoint": "verification/epfo/pan-to-uan",
                 "priority": "HIGH",
             },
@@ -124,19 +122,19 @@ async def verification_lite(request: Request, data: VerificationLiteRequest):
         secondary_api_calls = [
             {
                 "name": "Mobile Network Details",
-                "call": lambda: fetch_mobile_network_details(data.mobile_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_mobile_network_details(data.mobile_number, str(user_uuid), user.username, user.role),
                 "endpoint": "mobile-intelligence/mobile-to-network-details",
                 "priority": "MEDIUM",
             },
             {
                 "name": "PAN to Father Name",
-                "call": lambda: fetch_pan_to_father_name(data.pan_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_pan_to_father_name(data.pan_number, str(user_uuid), user.username, user.role),
                 "endpoint": "verification/pan-to-fathername",
                 "priority": "MEDIUM",
             },
             {
                 "name": "PAN KRA Status",
-                "call": lambda: fetch_pan_kra_status(data.pan_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_pan_kra_status(data.pan_number, str(user_uuid), user.username, user.role),
                 "endpoint": "verification/pan-kra-status",
                 "priority": "MEDIUM",
             },
@@ -145,13 +143,13 @@ async def verification_lite(request: Request, data: VerificationLiteRequest):
         additional_api_calls = [
             {
                 "name": "Mobile to Digital Age",
-                "call": lambda: fetch_mobile_to_digital_age(data.mobile_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_mobile_to_digital_age(data.mobile_number, str(user_uuid), user.username, user.role),
                 "endpoint": "mobile-intelligence/mobile-to-digital-age",
                 "priority": "LOW",
             },
             {
                 "name": "Mobile to Multiple UPI",
-                "call": lambda: fetch_mobile_to_multiple_upi(data.mobile_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_mobile_to_multiple_upi(data.mobile_number, str(user_uuid), user.username, user.role),
                 "endpoint": "mobile-intelligence/mobile-to-multiple-upi",
                 "priority": "LOW",
             },
@@ -247,14 +245,14 @@ async def verification_lite(request: Request, data: VerificationLiteRequest):
             if uan_number:
                 conditional_api_calls.append({
                     "name": "UAN Employment History",
-                    "call": lambda: fetch_uan_employment_history(uan_number, str(user_doc["_id"]), user.username, user.role),
+                    "call": lambda: fetch_uan_employment_history(uan_number, str(user_uuid), user.username, user.role),
                     "endpoint": "verification/epfo/uan-to-employment-history",
                 })
 
             # Add PAN MSME Check
             conditional_api_calls.append({
                 "name": "PAN MSME Check",
-                "call": lambda: fetch_pan_msme_check(data.pan_number, str(user_doc["_id"]), user.username, user.role),
+                "call": lambda: fetch_pan_msme_check(data.pan_number, str(user_uuid), user.username, user.role),
                 "endpoint": "verification/pan-msme-check",
             })
 

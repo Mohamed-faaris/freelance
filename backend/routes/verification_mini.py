@@ -1,14 +1,10 @@
 from fastapi import APIRouter, HTTPException, Request
 from typing import Optional, List
 from datetime import datetime
-from bson import ObjectId
-from config.db import apiAnalyticsCollection, userCollection
 from models.user import User
-from models.api_analytics import ApiAnalytics
 from services.authService import auth_service
 from utils.api_tracking import track_external_api_call
-from utils.auth import authenticate_request
-import jwt
+from utils.auth import get_authenticated_user
 import os
 import requests
 import asyncio
@@ -20,32 +16,33 @@ load_dotenv()
 
 verificationMiniRouter = APIRouter()
 
+def get_env(name: str, default: Optional[str] = None, *, required: bool = False) -> Optional[str]:
+    """Fetch environment variable with whitespace trimming and optional requirement."""
+    value = os.getenv(name)
+    if value is not None:
+        value = value.strip()
+        if value:
+            return value
+    if default is not None:
+        return default
+    if required:
+        raise ValueError(f"{name} environment variable is required")
+    return value
+
+
 # Environment variables with validation
-JWT_SECRET = os.getenv("JWT_SECRET")
-CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "https://auth.deepvue.tech")
-AUTH_SERVICE_CLIENT_ID = os.getenv("AUTH_SERVICE_CLIENT_ID")
-AUTH_SERVICE_CLIENT_SECRET = os.getenv("AUTH_SERVICE_CLIENT_SECRET")
-
-# Validate required environment variables
-if not JWT_SECRET:
-    raise ValueError("JWT_SECRET environment variable is required")
-
-if not CLIENT_SECRET:
-    raise ValueError("CLIENT_SECRET environment variable is required")
-
-if not AUTH_SERVICE_CLIENT_ID:
-    raise ValueError("AUTH_SERVICE_CLIENT_ID environment variable is required")
-
-if not AUTH_SERVICE_CLIENT_SECRET:
-    raise ValueError("AUTH_SERVICE_CLIENT_SECRET environment variable is required")
+JWT_SECRET = get_env("JWT_SECRET", required=True)
+CLIENT_SECRET = get_env("CLIENT_SECRET", required=True)
+AUTH_SERVICE_URL = get_env("AUTH_SERVICE_URL", "https://auth.deepvue.tech")
+AUTH_SERVICE_CLIENT_ID = get_env("AUTH_SERVICE_CLIENT_ID", required=True)
+AUTH_SERVICE_CLIENT_SECRET = get_env("AUTH_SERVICE_CLIENT_SECRET", required=True)
 
 # API Configuration
-BASE_URL = os.getenv("BASE_URL_V1", "https://production.deepvue.tech/v1")
-BASE_URL_V2 = os.getenv("BASE_URL_V2", "https://production.deepvue.tech/v2")
+BASE_URL = get_env("BASE_URL_V1", "https://production.deepvue.tech/v1")
+BASE_URL_V2 = get_env("BASE_URL_V2", "https://production.deepvue.tech/v2")
 
 # Additional environment variables
-ENABLE_ANALYTICS_TRACKING = os.getenv("ENABLE_ANALYTICS_TRACKING", "true").lower() == "true"
+ENABLE_ANALYTICS_TRACKING = get_env("ENABLE_ANALYTICS_TRACKING", "true").lower() == "true"
 
 # Production limits for mini verification
 PRODUCTION_LIMITS = {
@@ -151,18 +148,21 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
 
     try:
         # Authenticate user
-        decoded = authenticate_request(request)
-        if not decoded:
-            print("Authentication failed for mini verification request")
-            raise HTTPException(status_code=401, detail="Authentication required")
+        try:
+            user_doc = await get_authenticated_user(request)
+        except HTTPException as auth_error:
+            if auth_error.status_code == 401:
+                print("Authentication failed for mini verification request")
+            raise
 
-        # Get user
-        user_doc = await userCollection.find_one({"_id": ObjectId(decoded["id"])})
-        if not user_doc:
-            print(f"User not found for ID: {decoded['id']}")
-            raise HTTPException(status_code=401, detail="User not found")
+        user = User.model_validate(user_doc)
+        user_uuid = user_doc.get("_id") or user_doc.get("id")
+        if not user_uuid:
+            print(f"Authenticated user missing identifier: {user_doc}")
+            raise HTTPException(status_code=500, detail="User identifier missing")
 
-        user = User.model_construct(**user_doc)
+        user_id = str(user_uuid)
+
         print(f"Authenticated user: {user.username} (Role: {user.role})")
 
         # Validate required fields
@@ -199,7 +199,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
             try:
                 await process_mobile_to_pan_verification(
                     data.mobile,
-                    str(user_doc["_id"]),
+                    user_id,
                     user.username,
                     user.role,
                     verification_results
@@ -225,7 +225,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                 if verification_type == "aadhaar" and data.aadhaar_number:
                     await process_aadhaar_verification(
                         data.aadhaar_number,
-                        str(user_doc["_id"]),
+                        user_id,
                         user.username,
                         user.role,
                         verification_results
@@ -237,7 +237,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if pan_to_verify:
                         await process_pan_verification(
                             pan_to_verify,
-                            str(user_doc["_id"]),
+                            user_id,
                             user.username,
                             user.role,
                             verification_results
@@ -247,7 +247,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     await process_dl_verification(
                         data.dl_number,
                         formatted_dob,
-                        str(user_doc["_id"]),
+                        user_id,
                         user.username,
                         user.role,
                         verification_results
@@ -256,7 +256,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                 elif verification_type == "rc-advanced" and data.rc_number:
                     await process_rc_advanced_verification(
                         data.rc_number,
-                        str(user_doc["_id"]),
+                        user_id,
                         user.username,
                         user.role,
                         verification_results
@@ -265,7 +265,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                 elif verification_type == "rc-challan" and data.rc_number:
                     await process_rc_challan_verification(
                         data.rc_number,
-                        str(user_doc["_id"]),
+                        user_id,
                         user.username,
                         user.role,
                         verification_results
@@ -277,7 +277,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if pan_for_uan:
                         uan_result = await process_pan_to_uan_verification(
                             pan_for_uan,
-                            str(user_doc["_id"]),
+                            user_id,
                             user.username,
                             user.role,
                             verification_results
@@ -289,7 +289,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                             uan_result.get("verificationStatus") == "verified"):
                             await process_employment_history_verification(
                                 uan_result["uanNumber"],
-                                str(user_doc["_id"]),
+                                user_id,
                                 user.username,
                                 user.role,
                                 verification_results
@@ -298,7 +298,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                 elif verification_type == "aadhaar-to-uan" and data.aadhaar_number:
                     uan_result = await process_aadhaar_to_uan_verification(
                         data.aadhaar_number,
-                        str(user_doc["_id"]),
+                        user_id,
                         user.username,
                         user.role,
                         verification_results
@@ -310,7 +310,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         uan_result.get("verificationStatus") == "verified"):
                         await process_employment_history_verification(
                             uan_result["uanNumber"],
-                            str(user_doc["_id"]),
+                            user_id,
                             user.username,
                             user.role,
                             verification_results
@@ -321,7 +321,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if mobile_for_uan:
                         uan_result = await process_mobile_to_uan_verification(
                             mobile_for_uan,
-                            str(user_doc["_id"]),
+                            user_id,
                             user.username,
                             user.role,
                             verification_results
@@ -333,7 +333,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                             uan_result.get("verificationStatus") == "verified"):
                             await process_employment_history_verification(
                                 uan_result["uanNumber"],
-                                str(user_doc["_id"]),
+                                user_id,
                                 user.username,
                                 user.role,
                                 verification_results
@@ -344,7 +344,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if mobile_for_mnrl:
                         await process_mnrl_verification(
                             mobile_for_mnrl,
-                            str(user_doc["_id"]),
+                            user_id,
                             user.username,
                             user.role,
                             verification_results
@@ -355,7 +355,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if epic_number:
                         await process_voter_id_verification(
                             epic_number,
-                            str(user_doc["_id"]),
+                            user_id,
                             user.username,
                             user.role,
                             verification_results
@@ -367,7 +367,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         await process_passport_verification(
                             file_number,
                             formatted_dob,
-                            str(user_doc["_id"]),
+                            user_id,
                             user.username,
                             user.role,
                             verification_results
@@ -377,7 +377,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     await process_bank_account_verification(
                         data.bankAccount,
                         data.ifscCode,
-                        str(user_doc["_id"]),
+                        user_id,
                         user.username,
                         user.role,
                         verification_results
@@ -387,7 +387,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     await process_upi_verification(
                         data.upi,
                         data.name,
-                        str(user_doc["_id"]),
+                        user_id,
                         user.username,
                         user.role,
                         verification_results
@@ -1237,7 +1237,7 @@ async def verify_rc_challan(
     )
 
 async def _verify_rc_challan(rc_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/verification/rc-challan-details?rc_number={rc_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1271,7 +1271,7 @@ async def _verify_pan_to_uan(pan_number: str):
             },
         }
 
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/verification/epfo/pan-to-uan"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1305,7 +1305,7 @@ async def verify_aadhaar_to_uan(
     )
 
 async def _verify_aadhaar_to_uan(aadhaar_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/verification/epfo/aadhaar-to-uan"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1339,7 +1339,7 @@ async def verify_mobile_to_uan(
     )
 
 async def _verify_mobile_to_uan(mobile_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/mobile-intelligence/mobile-to-dl-details?mobile_number={mobile_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1395,7 +1395,7 @@ async def _verify_employment_history(uan_number: str):
             },
         }
 
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL_V2}/verification/epfo/uan-to-employment-history?uan_number={uan_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1452,7 +1452,7 @@ async def _verify_mobile_to_pan(mobile_number: str):
             },
         }
 
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/mobile-intelligence/mobile-to-pan"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1486,7 +1486,7 @@ async def verify_mnrl(
     )
 
 async def _verify_mnrl(mobile_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/verification/mnrl/verify?mobile_number={mobile_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1527,7 +1527,7 @@ async def initiate_voter_id_verification(
     )
 
 async def _initiate_voter_id_verification(epic_number: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/verification/post-voter-id?epic_number={epic_number}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1549,7 +1549,7 @@ async def poll_voter_id_verification(
     )
 
 async def _poll_voter_id_verification(request_id: str, max_attempts: int):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/verification/get-voter-id?request_id={request_id}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1582,7 +1582,7 @@ async def verify_passport(
     )
 
 async def _verify_passport(file_number: str, dob: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/verification/passport?file_number={file_number}&dob={dob}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1604,7 +1604,7 @@ async def verify_bank_account(
     )
 
 async def _verify_bank_account(bank_account: str, ifsc_code: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/verification/bankaccount?account_number={bank_account}&ifsc={ifsc_code}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -1626,7 +1626,7 @@ async def verify_upi(
     )
 
 async def _verify_upi(upi: str, name: str):
-    access_token = await get_access_token()
+    access_token = await auth_service.get_access_token()
     url = f"{BASE_URL}/verification/upi?vpa={upi}&name={name}"
     headers = {
         "Authorization": f"Bearer {access_token}",

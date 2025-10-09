@@ -2,24 +2,37 @@ from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional
-import jwt
 import os
 import requests
 import asyncio
 from datetime import datetime
-from bson import ObjectId
-from config.db import userCollection, apiAnalyticsCollection
 from models.user import User
-from models.api_analytics import ApiAnalytics
 from services.authService import auth_service
 from utils import (
-    authenticate_request,
     get_authenticated_user,
     track_external_api_call,
     verify_gstin_advanced,
     GST_ADVANCED_SERVICE,
     validate_environment_variables
 )
+
+# Load environment variables
+import dotenv
+dotenv.load_dotenv()
+
+def get_env(name: str, default: Optional[str] = None, *, required: bool = False) -> Optional[str]:
+    """Fetch environment variable with whitespace trimming and optional requirement."""
+    value = os.getenv(name)
+    if value is not None:
+        value = value.strip()
+        if value:
+            return value
+    if default is not None:
+        return default
+    if required:
+        raise ValueError(f"{name} environment variable is required")
+    return value
+
 
 router = APIRouter()
 
@@ -36,14 +49,11 @@ class VerificationResponse(BaseModel):
     data: Optional[Dict[str, Any]] = None
     message: Optional[str] = None
 
-JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
-BASE_URL = "https://production.deepvue.tech/v1"
-ENABLE_ANALYTICS_TRACKING = os.getenv("ENABLE_ANALYTICS_TRACKING", "true").lower() == "true"
-CLIENT_ID = os.getenv("CLIENT_ID")
-CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-
-def authenticate(request: Request):
-    return authenticate_request(request)
+JWT_SECRET = get_env("JWT_SECRET", required=True)
+BASE_URL = get_env("BASE_URL_V1", "https://production.deepvue.tech/v1")
+ENABLE_ANALYTICS_TRACKING = get_env("ENABLE_ANALYTICS_TRACKING", "true").lower() == "true"
+CLIENT_ID = get_env("CLIENT_ID")
+CLIENT_SECRET = get_env("CLIENT_SECRET")
 
 async def get_access_token():
     """Get access token using the auth service"""
@@ -66,6 +76,11 @@ async def get_gst_advanced_service(request: Request):
 async def post_gst_advanced_service(request: Request, data: GSTINAdvancedRequest):
     # Get authenticated user using utility function
     user_doc = await get_authenticated_user(request)
+    user = User.model_validate(user_doc)
+    user_uuid = user_doc.get("_id") or user_doc.get("id")
+    if not user_uuid:
+        print(f"Authenticated user missing identifier: {user_doc}")
+        raise HTTPException(status_code=500, detail="User identifier missing")
 
     try:
         service = data.service
@@ -74,9 +89,9 @@ async def post_gst_advanced_service(request: Request, data: GSTINAdvancedRequest
         if service == "gstin-advanced":
             # Use utility function for GSTIN verification with tracking
             response = await track_external_api_call(
-                str(user_doc["_id"]),
-                user_doc.get("username", ""),
-                user_doc.get("role", ""),
+                str(user_uuid),
+                user.username,
+                user.role,
                 "verification/gstin-advanced",
                 verify_gstin_advanced,
                 gstin

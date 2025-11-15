@@ -2,7 +2,9 @@
 Utility functions for the backend application.
 
 This package contains various utility modules:
-- auth: Authentication and user management utilities
+- auth: JWT-based authentication utilities (stateless)
+- jwt_parser: JWT token parsing and validation
+- permissions: Permission bits checking utilities
 - api_tracking: API call tracking and analytics
 - gstin_verification: GSTIN verification services
 - common: Common constants and configurations
@@ -10,9 +12,30 @@ This package contains various utility modules:
 """
 
 from .auth import (
-    authenticate_request,
     get_authenticated_user,
-    validate_user_permissions
+)
+
+from .jwt_parser import (
+    decode_jwt_token,
+    extract_jwt_claims,
+    validate_jwt_from_cookie
+)
+
+from .permissions import (
+    check_permission,
+    has_all_permissions,
+    get_permission_bits,
+    has_admin_access,
+    has_read_access,
+    has_write_access,
+    has_delete_access,
+    PERMISSION_READ,
+    PERMISSION_WRITE,
+    PERMISSION_DELETE,
+    PERMISSION_ADMIN,
+    PERMISSION_SUPER_ADMIN,
+    PERMISSION_READ_WRITE,
+    PERMISSION_ALL,
 )
 
 from .api_tracking import (
@@ -47,9 +70,28 @@ from .api_analytics import log_api_call
 
 __all__ = [
     # Auth utilities
-    "authenticate_request",
     "get_authenticated_user",
-    "validate_user_permissions",
+
+    # JWT utilities
+    "decode_jwt_token",
+    "extract_jwt_claims",
+    "validate_jwt_from_cookie",
+
+    # Permission utilities
+    "check_permission",
+    "has_all_permissions",
+    "get_permission_bits",
+    "has_admin_access",
+    "has_read_access",
+    "has_write_access",
+    "has_delete_access",
+    "PERMISSION_READ",
+    "PERMISSION_WRITE",
+    "PERMISSION_DELETE",
+    "PERMISSION_ADMIN",
+    "PERMISSION_SUPER_ADMIN",
+    "PERMISSION_READ_WRITE",
+    "PERMISSION_ALL",
 
     # API tracking
     "track_external_api_call",

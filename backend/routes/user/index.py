@@ -23,14 +23,12 @@ class Permission(BaseModel):
 class UserCreate(BaseModel):
     username: str
     email: str
-    password: str
     role: Optional[str] = "user"
     permissions: Optional[List[Permission]] = []
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
-    password: Optional[str] = None
     role: Optional[str] = None
     permissions: Optional[List[Permission]] = None
 

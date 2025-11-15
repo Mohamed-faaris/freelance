@@ -12,7 +12,6 @@ def userEntity(item) -> dict:
         "id": str(item["id"]),
         "username": item.get("username"),
         "email": item.get("email"),
-        "password": item.get("password"),
         "role": role,  # Already computed from roleResources
         "permissions": permissions,  # Already computed from roleResources
         "roleResources": role_resources,

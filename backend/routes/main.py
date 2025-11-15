@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 from .user.index import userRoute
-from .auth import authRouter
 from .news import newsRoute
 from .states import statesRoute
 from .court_cases import court_cases_router
@@ -22,7 +21,6 @@ from .education_verification import router as educationVerificationRouter
 from .user.permissions import permissionsRoute
 
 authMainRouter = APIRouter()
-authMainRouter.include_router(authRouter, prefix="/auth", tags=["auth"])
 
 permissionsMainRouter = APIRouter()
 permissionsMainRouter.include_router(permissionsRoute, prefix="/user/permissions", tags=["permissions"])
@@ -53,9 +51,6 @@ mainRouter = APIRouter()
 # This now includes both user routes and permissions routes (/users/permissions)
 mainRouter.include_router(userRoute, prefix="/users", tags=["users"])
 mainRouter.include_router(permissionsRoute, prefix="/users/permissions", tags=["permissions"])
-
-# Include auth routes
-mainRouter.include_router(authRouter, prefix="/auth", tags=["auth"])
 
 # Include education verification routes
 mainRouter.include_router(educationVerificationRouter, prefix="", tags=["education-verification"])

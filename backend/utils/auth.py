@@ -1,89 +1,36 @@
-import jwt
-import os
+"""
+JWT-based authentication utilities.
+Provides stateless authentication using JWT tokens from auth_token cookie.
+No database lookups needed - authorization is based on permissionBits in JWT.
+"""
+
 from fastapi import HTTPException, Request
-from typing import Optional, Dict, Any
-from bson import ObjectId
-from utils.dbCalls.user_db import find_user_by_id
+from typing import Dict, Any
+from utils.jwt_parser import validate_jwt_from_cookie
 
-JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
-
-def authenticate_request(request: Request) -> Optional[Dict[str, Any]]:
-    """
-    Authenticate a request by decoding JWT token from cookies.
-
-    Args:
-        request: FastAPI request object
-
-    Returns:
-        Decoded JWT payload or None if authentication fails
-    """
-    token = request.cookies.get("auth_token")
-    if not token:
-        return None
-
-    try:
-        decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-        return decoded
-    except jwt.ExpiredSignatureError:
-        return None
-    except jwt.InvalidTokenError:
-        return None
-    except Exception:
-        return None
 
 async def get_authenticated_user(request: Request) -> Dict[str, Any]:
     """
-    Get authenticated user details from request.
+    Get JWT payload from auth_token cookie.
 
     Args:
         request: FastAPI request object
 
     Returns:
-        User document from database
+        Decoded JWT payload with userId, sessionId, roleId, permissionBits, iat, exp
 
     Raises:
-        HTTPException: If user is not authenticated or not found
+        HTTPException(401): If token is missing, invalid, or expired
     """
-    user = authenticate_request(request)
-    # print(f"Authenticated user from token: {user}")
-    if not user:
+    token = request.cookies.get("auth_token")
+    
+    if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
-    user_id = user.get("id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    # Validate and decode JWT
+    payload, is_valid, error = validate_jwt_from_cookie(token)
 
-    user_doc = await find_user_by_id(int(user_id))
-    # print(f"User document fetched: {user_doc}")
-    if not user_doc:
-        raise HTTPException(status_code=401, detail="User not found")
+    if not is_valid:
+        raise HTTPException(status_code=401, detail=error or "Invalid token")
 
-    return user_doc
-
-def validate_user_permissions(user_doc: Dict[str, Any], required_permissions: list = None) -> bool:
-    """
-    Validate if user has required permissions.
-
-    Args:
-        user_doc: User document from database
-        required_permissions: List of required permissions
-
-    Returns:
-        True if user has permissions, False otherwise
-    """
-    if not required_permissions:
-        return True
-
-    user_permissions = user_doc.get("permissions", [])
-    user_role = user_doc.get("role", "user")
-
-    # Admin and superadmin have all permissions
-    if user_role in ["admin", "superadmin"]:
-        return True
-
-    # Check specific permissions
-    for perm in user_permissions:
-        if perm.get("resource") in required_permissions:
-            return True
-
-    return False
+    return payload

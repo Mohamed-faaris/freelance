@@ -2,7 +2,6 @@ aiosmtplib==3.0.2
 annotated-types==0.7.0
 anyio==4.10.0
 asyncpg==0.29.0
-bcrypt==4.3.0
 blinker==1.9.0
 Brotli==1.1.0
 bson==0.5.10

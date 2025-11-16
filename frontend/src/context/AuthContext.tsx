@@ -4,9 +4,37 @@ import { useNavigate } from "react-router-dom";
 
 interface User {
   id: string;
-  username: string;
-  email: string;
-  role?: "admin" | "superadmin" | "user"; // Added role field
+  createdAt: string;
+  updatedAt: string;
+  profile: {
+    firstName: string;
+    lastName: string;
+    avatarUrl: string | null;
+    gender: string;
+    mfaRequired: boolean;
+  };
+  emails: Array<{
+    id: string;
+    email: string;
+    isVerified: boolean;
+  }>;
+  role: {
+    id: string;
+    name: string;
+    description: string;
+    permissions: string;
+    isActive: boolean;
+  };
+  organization: any | null;
+  recentActivity: any[];
+  tokenPayload: {
+    userId: string;
+    sessionId: string;
+    roleId: string;
+    permissionBits: string;
+    issuedAt: number;
+    expiresAt: number;
+  };
 }
 
 interface AuthContextType {
@@ -33,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch(`${API_URL}/auth`, {
+        const res = await fetch(`${API_URL}/user`, {
           // Add cache control headers to prevent caching
           headers: {
             "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -55,16 +83,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         console.log("Auth check response data:", data); // Debugging line
         if (data.user) {
-          setUser({
-            id: data.user._id || data.user.id,
-            username: data.user.username,
-            email: data.user.email,
-            role: data.user.role, // Include role from API response
-          });
+          setUser(data.user);
         } else {
           setUser(null);
         }
       } catch (error) {
+        console.error("Auth check error:", error);
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -79,46 +103,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${API_URL}/auth`, {
-        method: "POST",
+      // Step 1: Authenticate with credentials - external auth server handles this
+      const authRes = (await fetch(`${import.meta.env.VITE_AUTH_API_URL}/user`, {
+        method: "GET",
         headers: {
           "Content-Type": "application/json",
-        },
-        credentials: "include", // Ensure cookies are sent
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Login failed");
-      }
-
-      // Make another request to get full user details including role
-      const userRes = await fetch(`${API_URL}/auth`, {
-        headers: {
           "Cache-Control": "no-cache, no-store, must-revalidate",
           Pragma: "no-cache",
         },
-        credentials: "include", // Ensure cookies are sent
-      });
+        credentials: "include", // Cookies set by external auth server
+      })) 
 
-      const userData = await userRes.json();
+      if (!authRes.ok) {
+        if (authRes.status === 401) {
+          throw new Error("Invalid credentials or not authenticated");
+        }
+        throw new Error("Login failed");
+      }
+
+      const userData = await authRes.json();
 
       if (userData.user) {
-        // Set the user with role information
-        setUser({
-          id: userData.user._id || userData.user.id,
-          username: userData.user.username,
-          email: userData.user.email,
-          role: userData.user.role,
-        });
-        // Use React Router navigation instead of hard navigation
+        // Set the user with full profile and permission bits from tokenPayload
+        setUser(userData.user);
         navigate("/");
-        return;
       } else {
-        // Fallback to original data if user endpoint fails
-        setUser(data.user);
+        throw new Error("No user data received");
       }
     } catch (error: any) {
       throw new Error(error.message || "Login failed");
@@ -129,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      const res = await fetch(`${API_URL}/auth/logout`, {
+      const res = await fetch(`${API_URL}/user/logout`, {
         method: "POST",
         credentials: "include",
       });

@@ -251,14 +251,71 @@ const CourtCaseResult: FC<CourtCaseResultProps> = ({ profileData }) => {
 
       const data = await response.json();
 
-      // Set all results
-      setAllCourtCases(data.cases || []);
-      setCasesFound(data.casesFound || 0);
-      setAiAnalysis(data.aiAnalysis);
-      setAdvancedAnalysis(data.advancedAnalysis);
+      // Transform API response to match Case interface
+      const transformedCases: Case[] = (data.data || []).map((item: any) => ({
+        id: item.cnr || item.title,
+        petitioners: item.petitioners || [],
+        respondents: item.respondents || [],
+        acts: item.acts || [],
+        sections: item.sections || "",
+        filingDate: item.filingDate || "",
+        court: item.court || "",
+        status: item.stage || item.status || "",
+        address: item.location || "",
+        confidence: item.relevanceScore
+          ? Math.min(item.relevanceScore, 100)
+          : 0,
+        evidence: item.matchingEvidence || [],
+        rejectionReasons: item.filterReason ? [item.filterReason] : [],
+        rawScore: item.score || 0,
+        advancedAnalysis: item.advancedAnalysis || false,
+        aiConfidence: item.aiConfidence || 0,
+        aiRationale: item.aiRationale || "",
+      }));
 
-      console.log("Advanced Analysis Results:", data.advancedAnalysis);
-      console.log("AI Analysis Results:", data.aiAnalysis);
+      // Set all results
+      setAllCourtCases(transformedCases);
+      setCasesFound(data.totalValidCases || transformedCases.length);
+
+      // Set advanced analysis if available
+      if (data.advancedAnalysis) {
+        setAdvancedAnalysis(data.advancedAnalysis);
+      } else {
+        // Create basic analysis from response data
+        setAdvancedAnalysis({
+          matches: transformedCases.filter((c) => (c.confidence || 0) >= 50),
+          rejected: transformedCases.filter((c) => (c.confidence || 0) < 50),
+          statistics: {
+            totalCases: data.totalFetchedCases || 0,
+            highConfidence: transformedCases.filter(
+              (c) => (c.confidence || 0) >= 80
+            ).length,
+            mediumConfidence: transformedCases.filter(
+              (c) => (c.confidence || 0) >= 50 && (c.confidence || 0) < 80
+            ).length,
+            lowConfidence: transformedCases.filter(
+              (c) => (c.confidence || 0) < 50
+            ).length,
+            averageConfidence:
+              transformedCases.length > 0
+                ? Math.round(
+                    transformedCases.reduce(
+                      (sum, c) => sum + (c.confidence || 0),
+                      0
+                    ) / transformedCases.length
+                  )
+                : 0,
+            rejectionReasons: {
+              "Filtered Out": data.filteredOutCases || 0,
+            },
+          },
+        });
+      }
+
+      // Set AI analysis if available
+      if (data.aiAnalysis) {
+        setAiAnalysis(data.aiAnalysis);
+      }
     } catch (error) {
       console.error("Error searching court cases:", error);
       setError(

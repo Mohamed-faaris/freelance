@@ -1,0 +1,100 @@
+{
+  "profile": {
+    "personalInfo": {
+      "full_name": "RELIANCE INDUSTRIES LIMITED",
+      "fullName": null,
+      "father_name": null,
+      "fatherName": null,
+      "dob": null,
+      "dateOfBirth": null,
+      "pan_number": "AAACR5055K",
+      "panNumber": null,
+      "aadhaar_number": null,
+      "aadhaarNumber": null,
+      "gender": null
+    },
+    "contactInfo": {
+      "address": "5, TTC Industrial Area, 5, Reliance Corporate Park, Thane Belapur Road, Ghansoli, Navi Mumbai, Thane, Maharashtra, 400701",
+      "email": "RIL.MHGST@ril.com",
+      "mobile": "9662506520",
+      "nature_of_business": "Factory / Manufacturing, Retail Business, Input Service Distributor (ISD), Bonded Warehouse, SEZ, Works Contract, Warehouse / Depot, Service Provision, Leasing Business, Office / Sale Office, Recipient of Goods or Services, Wholesale Business, EOU / STP / EHTP"
+    },
+    "digitalInfo": null,
+    "employmentInfo": null,
+    "businessInfo": null,
+    "creditInfo": null,
+    "drivingInfo": null,
+    "vehicleInfo": null,
+    "rawProfileData": {
+      "personalInfo": {
+        "fullName": "RELIANCE INDUSTRIES LIMITED",
+        "panNumber": "AAACR5055K"
+      },
+      "contactInfo": {
+        "address": "5, TTC Industrial Area, 5, Reliance Corporate Park, Thane Belapur Road, Ghansoli, Navi Mumbai, Thane, Maharashtra, 400701",
+        "email": "RIL.MHGST@ril.com",
+        "mobile": "9662506520",
+        "nature_of_business": "Factory / Manufacturing, Retail Business, Input Service Distributor (ISD), Bonded Warehouse, SEZ, Works Contract, Warehouse / Depot, Service Provision, Leasing Business, Office / Sale Office, Recipient of Goods or Services, Wholesale Business, EOU / STP / EHTP"
+      }
+    },
+    "business_name": null,
+    "legal_name": null,
+    "addresses": null
+  },
+  "searchParams": {
+    "strictMode": true,
+    "searchIn": "respondent",
+    "includeAddress": true
+  },
+  "timestamp": 1763324155.329237,
+  "rawCases": [
+    {
+      "score": 16.959265,
+      "cnr": "MHTH060015762011",
+      "title": "Sunita Santosh Rane  5Death vs. Reliance Industries Limited  1HDFC Ergo Ins.",
+      "petitioners": [
+        "Sunita Santosh Rane  5Death"
+      ],
+      "respondents": [
+        "<em>Reliance Industries Limited</em>  1HDFC Ergo Ins."
+      ],
+      "filingDate": "2011-10-03",
+      "stage": "Appearance ",
+      "court": "District Court",
+      "location": "Reliance Industries Limited  1HDFC Ergo Ins.",
+      "relevanceScore": null,
+      "ageAtFiling": null,
+      "isValid": null,
+      "filterReason": null
+    }
+  ],
+  "validCases": [
+    {
+      "score": 16.959265,
+      "cnr": "MHTH060015762011",
+      "title": "Sunita Santosh Rane  5Death vs. Reliance Industries Limited  1HDFC Ergo Ins.",
+      "petitioners": [
+        "Sunita Santosh Rane  5Death"
+      ],
+      "respondents": [
+        "<em>Reliance Industries Limited</em>  1HDFC Ergo Ins."
+      ],
+      "filingDate": "2011-10-03",
+      "stage": "Appearance ",
+      "court": "District Court",
+      "location": "Reliance Industries Limited  1HDFC Ergo Ins.",
+      "relevanceScore": 26.96,
+      "ageAtFiling": null,
+      "isValid": true,
+      "filterReason": null
+    }
+  ],
+  "invalidCases": [],
+  "searchSummary": {
+    "highCourtCases": 0,
+    "districtCourtCases": 1,
+    "casesRemovedForAge": 0,
+    "averageRelevanceScore": 26.96
+  },
+  "fileName": "reliance_industries_limited_unknown_2025-11-17.json"
+}

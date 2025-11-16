@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AUTH_API_URL } from "../../config";
 
 interface User {
   id: string;
@@ -60,26 +61,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_AUTH_API_URL}/user`, {
-          // Add cache control headers to prevent caching
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            Pragma: "no-cache",
-          },
+        const res = await fetch(`${AUTH_API_URL}/user`, {
           credentials: "include", // Ensure cookies are sent
         });
+
+        console.log("Auth check - Response status:", res.status);
+        console.log(
+          "Auth check - Response headers:",
+          Object.fromEntries(res.headers.entries())
+        );
 
         if (!res.ok) {
           if (res.status === 401) {
             setUser(null);
+            console.log("Navigating to /login - Unauthorized");
             navigate("/login");
             return;
           } else {
+            console.log("Auth check failed with status:", res.status);
             throw new Error("Auth check failed");
           }
         }
 
-        const data = await res.json();
+        // Log raw response text before parsing
+        const responseText = await res.text();
+        console.log("Auth check - Raw response text:", responseText);
+
+        // Try to parse as JSON
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error("Auth check - JSON parse error:", parseError);
+          console.error(
+            "Auth check - Response was not valid JSON:",
+            responseText
+          );
+          throw new Error("Invalid JSON response from auth endpoint");
+        }
+
         console.log("Auth check response data:", data); // Debugging line
         if (data.user) {
           setUser(data.user);
@@ -103,12 +123,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       // Step 1: Authenticate with credentials - external auth server handles this
-      const authRes = await fetch(`${import.meta.env.VITE_AUTH_API_URL}/user`, {
+      const authRes = await fetch(`${AUTH_API_URL}/user`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
         },
         credentials: "include", // Cookies set by external auth server
       });
@@ -125,6 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (userData.user) {
         // Set the user with full profile and permission bits from tokenPayload
         setUser(userData.user);
+        console.log("Navigating to / - Login successful");
         navigate("/");
       } else {
         throw new Error("No user data received");
@@ -138,7 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      const res = await fetch(`${API_URL}/user/logout`, {
+      const res = await fetch(`${AUTH_API_URL}/user/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -148,6 +167,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUser(null);
+      console.log("Navigating to /login - Logout successful");
       navigate("/login");
     } catch (error) {
       console.error("Logout error:", error);

@@ -68,42 +68,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           credentials: "include", // Ensure cookies are sent
         });
 
-        console.log("Auth check - Response status:", res.status);
-        console.log(
-          "Auth check - Response headers:",
-          Object.fromEntries(res.headers.entries())
-        );
-
         if (!res.ok) {
           if (res.status === 401) {
             setUser(null);
-            console.log("Navigating to /login - Unauthorized");
             navigate("/login");
             return;
           } else {
-            console.log("Auth check failed with status:", res.status);
             throw new Error("Auth check failed");
           }
         }
 
-        // Log raw response text before parsing
         const responseText = await res.text();
-        console.log("Auth check - Raw response text:", responseText);
 
         // Try to parse as JSON
         let data;
         try {
           data = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error("Auth check - JSON parse error:", parseError);
-          console.error(
-            "Auth check - Response was not valid JSON:",
-            responseText
-          );
+        } catch {
           throw new Error("Invalid JSON response from auth endpoint");
         }
 
-        console.log("Auth check response data:", data); // Debugging line
         if (data) {
           // The response IS the user object, not wrapped in a user property
           const userObj = data.tokenPayload ? data : data.user;
@@ -122,15 +106,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const permissionBits = BigInt(permissionBitsStr);
           const permissions = getPermissionNames(permissionBits);
 
-          console.log(
-            "Permission Bits:",
-            permissionBitsStr,
-            "Parsed:",
-            permissionBits.toString(),
-            "Names:",
-            permissions
-          );
-
           setUser({
             ...userObj,
             permissions,
@@ -138,8 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setUser(null);
         }
-      } catch (error) {
-        console.error("Auth check error:", error);
+      } catch {
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -189,21 +163,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const permissionBits = BigInt(permissionBitsStr);
         const permissions = getPermissionNames(permissionBits);
 
-        console.log(
-          "Permission Bits:",
-          permissionBitsStr,
-          "Parsed:",
-          permissionBits.toString(),
-          "Names:",
-          permissions
-        );
-
         // Set the user with full profile and permission bits from tokenPayload
         setUser({
           ...userObj,
           permissions,
         });
-        console.log("Navigating to / - Login successful");
         navigate("/");
       } else {
         throw new Error("No user data received");
@@ -227,10 +191,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUser(null);
-      console.log("Navigating to /login - Logout successful");
       navigate("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
+    } catch {
+      // Silent fail
     }
   };
 

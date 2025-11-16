@@ -15,13 +15,13 @@ logger = logging.getLogger(__name__)
 class MailConfig:
     """Mail service configuration"""
 
-    # SMTP Configuration
-    SMTP_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
-    SMTP_PORT = int(os.getenv("MAIL_PORT", "465"))
-    SMTP_USERNAME = os.getenv("MAIL_USERNAME")
-    SMTP_PASSWORD = os.getenv("MAIL_PASSWORD")
+    # SMTP Configuration - using environment variables from .env
+    SMTP_SERVER = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
+    SMTP_USERNAME = os.getenv("USER") or os.getenv("MAIL_USERNAME")
+    SMTP_PASSWORD = os.getenv("PASS") or os.getenv("MAIL_PASSWORD")
     SMTP_USE_TLS = os.getenv("MAIL_STARTTLS", "false").lower() == "true"
-    SMTP_USE_SSL = os.getenv("MAIL_SSL_TLS", "true").lower() == "true"
+    SMTP_USE_SSL = os.getenv("MAIL_SSL_TLS", os.getenv("SMTP_SECURE", "true")).lower() == "true"
 
     # Email Configuration
     FROM_EMAIL = os.getenv("MAIL_FROM", SMTP_USERNAME)
@@ -58,28 +58,28 @@ class MailService:
     """Simple mailing service for testing"""
 
     def __init__(self):
-        self.config = create_fastapi_mail_config()
-        self.fastmail = FastMail(self.config)
+        self.config = None
+        self.fastmail = None
+        self.initialized = False
 
-        # Validate configuration
-        self._validate_config()
-
-    def _validate_config(self):
-        """Validate mail service configuration"""
-        if not MailConfig.ENABLE_MAILING:
-            logger.warning("Mailing service is disabled")
-            return
-
-        if not MailConfig.SMTP_USERNAME or not MailConfig.SMTP_PASSWORD:
-            raise ValueError("USER and PASS environment variables are required")
-
-        logger.info("Mail service initialized successfully")
+        try:
+            # Only initialize if we have credentials
+            if MailConfig.SMTP_USERNAME and MailConfig.SMTP_PASSWORD:
+                self.config = create_fastapi_mail_config()
+                self.fastmail = FastMail(self.config)
+                self.initialized = True
+                logger.info("Mail service initialized successfully")
+            else:
+                logger.warning("Mail service: Missing SMTP credentials (USER/PASS environment variables)")
+        except Exception as e:
+            logger.warning(f"Mail service initialization failed: {e}")
+            logger.warning("Mail service will be disabled for this session")
 
     async def send_email(self, email_data: EmailData) -> bool:
         """Send email using SMTP"""
-        if not MailConfig.ENABLE_MAILING:
-            logger.info("Mailing disabled, skipping email send")
-            return True
+        if not self.initialized:
+            logger.warning("Mail service not initialized, skipping email send")
+            return False
 
         try:
             message = MessageSchema(

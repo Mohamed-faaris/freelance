@@ -26,5 +26,7 @@ const malformedUrlHandler: Plugin = {
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/u/',
+  server: { host: '0.0.0.0' },
   plugins: [react(), malformedUrlHandler],
 })

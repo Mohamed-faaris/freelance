@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AUTH_API_URL } from "../../config";
+import { AUTH_API_URL, LOGIN_PAGE_URL, LOGOUT_API_URL } from "../../config";
 import { getPermissionNames } from "../utils/permissions";
 
 interface User {
@@ -181,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      const res = await fetch(`${AUTH_API_URL}/user/logout`, {
+      const res = await fetch(`${LOGOUT_API_URL}`, {
         method: "POST",
         credentials: "include",
       });

@@ -1,5 +1,4 @@
 from fastapi import APIRouter
-from .user.index import userRoute
 from .news import newsRoute
 from .states import statesRoute
 from .court_cases import court_cases_router
@@ -18,13 +17,7 @@ from .send_profile_email import router as sendProfileEmailRouter
 from .send_fssai_email import router as sendFssaiEmailRouter
 from .education_verification import router as educationVerificationRouter
 
-from .user.permissions import permissionsRoute
-
 authMainRouter = APIRouter()
-
-permissionsMainRouter = APIRouter()
-permissionsMainRouter.include_router(permissionsRoute, prefix="/user/permissions", tags=["permissions"])
-permissionsMainRouter.include_router(userRoute, prefix="/users", tags=["permissions"])
 
 servicesMainRouter = APIRouter()
 servicesMainRouter.include_router(newsRoute, prefix="/news", tags=["news"])
@@ -46,11 +39,6 @@ servicesMainRouter.include_router(sendFssaiEmailRouter, prefix="/send-fssai-emai
 servicesMainRouter.include_router(educationVerificationRouter, prefix="", tags=["education-verification"])
 
 mainRouter = APIRouter()
-
-# Include user routes with a prefix and tags for organization
-# This now includes both user routes and permissions routes (/users/permissions)
-mainRouter.include_router(userRoute, prefix="/users", tags=["users"])
-mainRouter.include_router(permissionsRoute, prefix="/users/permissions", tags=["permissions"])
 
 # Include education verification routes
 mainRouter.include_router(educationVerificationRouter, prefix="", tags=["education-verification"])

@@ -15,7 +15,6 @@ from functools import reduce
 from utils import (
     authenticate_request,
     get_authenticated_user,
-    validate_user_permissions
 )
 
 # Load environment variables

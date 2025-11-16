@@ -52,7 +52,7 @@ async def get_authenticated_user(request: Request) -> Dict[str, Any]:
         HTTPException(401): If token is missing, invalid, or expired
     """
     token = request.cookies.get("auth_token")
-    
+    print(request.cookies)
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
 

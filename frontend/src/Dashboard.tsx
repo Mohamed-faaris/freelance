@@ -32,16 +32,12 @@ import FassaiProfilePage from "./components/forms/FssaiProfileForm";
 import EducationVerification from "./components/forms/EducationVerification";
 import AdvancedSearch from "./components/forms/AdvancedSearch";
 import { useTheme } from "./context/ThemeContext";
-import { API_URL } from "../config";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("news"); // Default to news tab
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
-  const [tabPermissions, setTabPermissions] = useState<
-    Record<string, string[]>
-  >({});
 
   interface ToastInfo {
     message: string;
@@ -56,6 +52,7 @@ export default function Dashboard() {
 
   const { darkMode, toggleDarkMode } = useTheme();
   const { user, isAuthenticated, isLoading } = useAuth();
+  console.log({user});
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -98,7 +95,7 @@ export default function Dashboard() {
 
   // Close search suggestions when clicking outside
   useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
+    const handleOutsideClick = () => {
       if (showSearchSuggestions) {
         setShowSearchSuggestions(false);
       }
@@ -112,38 +109,9 @@ export default function Dashboard() {
 
   // Fetch user permissions
   useEffect(() => {
-    const fetchPermissions = async () => {
-      if (!isAuthenticated) {
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `${API_URL}/users/permissions?userId=${encodeURIComponent(
-            user?.id || ""
-          )}`
-        );
-        if (!response.ok) throw new Error("Failed to fetch permissions");
-
-        const data = await response.json();
-
-        const permissionMap: Record<string, string[]> = {};
-        data.permissions.forEach((perm: any) => {
-          permissionMap[perm.resource] = perm.actions;
-        });
-
-        setTabPermissions(permissionMap);
-      } catch (error) {
-        console.error("Error fetching permissions:", error);
-        setToastInfo({
-          message: "Failed to load user permissions",
-          type: "error",
-        });
-      }
-    };
-
-    fetchPermissions();
-  }, [isAuthenticated, user?.id]);
+    // Permissions are now handled by AuthContext - no need to fetch separately
+    // The user.permissions array is automatically populated from JWT token
+  }, []);
 
   // Define the NavItem interface
   interface NavItem {
@@ -151,10 +119,7 @@ export default function Dashboard() {
     label: string;
     icon: React.ComponentType<{ size: number; className?: string }>;
     children?: NavItem[];
-    requiredPermission?: {
-      resource: string;
-      action?: string;
-    };
+    requiredPermission?: string; // Now just a string matching the permission name
   }
 
   // Navigation items with permission checks
@@ -163,7 +128,7 @@ export default function Dashboard() {
       id: "news",
       label: "News",
       icon: Newspaper,
-      requiredPermission: { resource: "news" },
+      requiredPermission: "news:view",
     },
     {
       id: "personal",
@@ -174,19 +139,19 @@ export default function Dashboard() {
           id: "verification-mini",
           label: "Mini",
           icon: ShieldCheck,
-          requiredPermission: { resource: "verification-mini" },
+          requiredPermission: "verification-mini:view",
         },
         {
           id: "verification-lite",
           label: "Lite",
           icon: ShieldCheck,
-          requiredPermission: { resource: "verification-lite" },
+          requiredPermission: "verification-lite:view",
         },
         {
           id: "verification-advanced",
           label: "Advanced",
           icon: ShieldCheck,
-          requiredPermission: { resource: "verification-advanced" },
+          requiredPermission: "verification-advanced:view",
         },
       ],
     },
@@ -194,16 +159,16 @@ export default function Dashboard() {
       id: "business",
       label: "Business Verification",
       icon: Building2,
-      requiredPermission: { resource: "business" },
+      requiredPermission: "businessview",
     },
     // {
     //   id: "fssai-verification",
     //   label: "FSSAI Verification",
     //   icon: Building2,
-    //   requiredPermission: { resource: "fssai-verification" },
+    //   requiredPermission: "fssai-verification:view",
     // },
 
-    ...(user?.role === "superadmin" || user?.role === "admin"
+    ...(user?.role?.name === "superadmin" || user?.role?.name === "admin"
       ? [
           {
             id: "admin-section",
@@ -228,28 +193,26 @@ export default function Dashboard() {
     //   id: "education-verification",
     //   label: "Education Verification",
     //   icon: BookOpen,
-    //   requiredPermission: { resource: "education-verification" },
+    //   requiredPermission: "education-verification:view",
     // },
     // {
     //   id: "advanced-search",
     //   label: "Advanced Search",
     //   icon: SearchCheckIcon,
-    //   requiredPermission: { resource: "advanced-search" },
+    //   requiredPermission: "advanced-search:view",
     // },
   ];
 
   // Check if tab is allowed based on user permissions
   const isTabAllowed = (item: NavItem): boolean => {
-    // Superadmin and admin can access everything
-    if (user?.role === "superadmin") return true;
+    // Superadmin can access everything
+    if (user?.role?.name === "superadmin") return true;
 
     // If no permission requirement, it's publicly accessible
     if (!item.requiredPermission) return true;
 
-    const { resource, action = "view" } = item.requiredPermission;
-
-    // Check if user has permission for the resource
-    return tabPermissions[resource]?.includes(action) ?? false;
+    // Check if user has the required permission in their permissions array
+    return user?.permissions?.includes(item.requiredPermission) ?? false;
   };
 
   // Filter and process navigation items based on permissions
@@ -421,15 +384,31 @@ export default function Dashboard() {
   };
 
   // Utility function to get user initials
-  function getInitials(name: string): string {
-    if (!name) return "?";
+  function getInitials(
+    user:
+      | {
+          profile?: { firstName?: string; lastName?: string };
+          emails?: Array<{ email: string }>;
+        }
+      | null
+      | undefined
+  ): string {
+    if (!user) return "?";
 
-    const parts = name.split(" ");
-    if (parts.length === 1) {
-      return name.substring(0, 2).toUpperCase();
-    } else {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
+    // Try to get from profile first
+    if (user.profile?.firstName && user.profile?.lastName) {
+      return (
+        user.profile.firstName[0] + user.profile.lastName[0]
+      ).toUpperCase();
     }
+
+    // Fallback to email
+    if (user.emails?.[0]?.email) {
+      const email = user.emails[0].email;
+      return email.substring(0, 2).toUpperCase();
+    }
+
+    return "?";
   }
 
   return (
@@ -519,7 +498,7 @@ export default function Dashboard() {
                 className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium"
                 aria-label="User menu"
               >
-                {getInitials(user?.username || user?.email || "")}
+                {getInitials(user)}
               </button>
             </div>
 

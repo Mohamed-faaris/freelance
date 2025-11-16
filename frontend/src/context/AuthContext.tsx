@@ -1,11 +1,14 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AUTH_API_URL } from "../../config";
+import { getPermissionNames } from "../utils/permissions";
 
 interface User {
   id: string;
   createdAt: string;
   updatedAt: string;
+  permissions: string[];
   profile: {
     firstName: string;
     lastName: string;
@@ -101,8 +104,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         console.log("Auth check response data:", data); // Debugging line
-        if (data.user) {
-          setUser(data.user);
+        if (data) {
+          // The response IS the user object, not wrapped in a user property
+          const userObj = data.tokenPayload ? data : data.user;
+
+          if (!userObj) {
+            setUser(null);
+            return;
+          }
+
+          // Convert permissionBits to permissions array
+          // Try tokenPayload first, then fallback to role.permissions
+          const permissionBitsStr =
+            userObj.tokenPayload?.permissionBits ||
+            userObj.role?.permissions ||
+            "0";
+          const permissionBits = BigInt(permissionBitsStr);
+          const permissions = getPermissionNames(permissionBits);
+
+          console.log(
+            "Permission Bits:",
+            permissionBitsStr,
+            "Parsed:",
+            permissionBits.toString(),
+            "Names:",
+            permissions
+          );
+
+          setUser({
+            ...userObj,
+            permissions,
+          });
         } else {
           setUser(null);
         }
@@ -140,9 +172,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const userData = await authRes.json();
 
-      if (userData.user) {
+      if (userData) {
+        // The response IS the user object, not wrapped in a user property
+        const userObj = userData.tokenPayload ? userData : userData.user;
+
+        if (!userObj) {
+          throw new Error("No user data received");
+        }
+
+        // Convert permissionBits to permissions array
+        // Try tokenPayload first, then fallback to role.permissions
+        const permissionBitsStr =
+          userObj.tokenPayload?.permissionBits ||
+          userObj.role?.permissions ||
+          "0";
+        const permissionBits = BigInt(permissionBitsStr);
+        const permissions = getPermissionNames(permissionBits);
+
+        console.log(
+          "Permission Bits:",
+          permissionBitsStr,
+          "Parsed:",
+          permissionBits.toString(),
+          "Names:",
+          permissions
+        );
+
         // Set the user with full profile and permission bits from tokenPayload
-        setUser(userData.user);
+        setUser({
+          ...userObj,
+          permissions,
+        });
         console.log("Navigating to / - Login successful");
         navigate("/");
       } else {

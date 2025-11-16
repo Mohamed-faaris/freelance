@@ -8,8 +8,15 @@ import os
 from typing import Dict, Any, Tuple
 from datetime import datetime, timezone
 
-JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
+JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+
+# Validate JWT_SECRET is configured
+if not JWT_SECRET:
+    raise ValueError(
+        "JWT_SECRET environment variable is not configured. "
+        "Please set JWT_SECRET in your .env file or environment."
+    )
 
 
 def decode_jwt_token(token: str) -> Tuple[Dict[str, Any], str | None]:

@@ -1,11 +1,17 @@
 import os
+import sys
+
+# Load environment variables FIRST before any other imports
 from dotenv import load_dotenv
+env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+load_dotenv(dotenv_path=env_path)
+
+# Now import FastAPI and routes
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.main import mainRouter
 
 app = FastAPI()
-load_dotenv()
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 

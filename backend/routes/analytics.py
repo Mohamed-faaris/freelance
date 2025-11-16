@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException, Request, Query
 from typing import Optional
 from datetime import datetime, timedelta
 from bson import ObjectId
-from utils.dbCalls.user_db import find_user_by_id, check_user_permissions
 from utils.dbCalls.analytics_db import (
     get_analytics_total_usage,
     get_analytics_daily_usage,
@@ -15,22 +14,14 @@ from utils.dbCalls.analytics_db import (
     build_analytics_filter,
     format_analytics_logs_for_response
 )
+from utils.auth import get_authenticated_user
+from utils.permissions import has_verification_advanced_access
 import jwt
 import os
 
 analyticsRouter = APIRouter()
 
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
-
-def authenticate(request: Request):
-    token = request.cookies.get("auth_token")
-    if not token:
-        return None
-    try:
-        decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-        return decoded
-    except:
-        return None
 
 @analyticsRouter.get("")
 async def get_analytics(
@@ -42,18 +33,11 @@ async def get_analytics(
     endpoint: Optional[str] = Query(None),
     profileType: Optional[str] = Query(None),
 ):
-    # Authenticate
-    decoded = authenticate(request)
-    if not decoded:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    # Authenticate user - get JWT payload directly (stateless)
+    user_doc = await get_authenticated_user(request)
 
-    # Get user
-    user_doc = await find_user_by_id(int(decoded["id"]))
-    if not user_doc:
-        raise HTTPException(status_code=401, detail="User not found")
-
-    # Check permissions
-    if not await check_user_permissions(user_doc, "api-analytics"):
+    # Check permissions using JWT permission bits
+    if not has_verification_advanced_access(user_doc):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
     # Parse dates
@@ -115,20 +99,11 @@ async def get_analytics_logs(
     page: int = Query(1, ge=1),
     limit: int = Query(100, ge=1, le=1000),
 ):
-    # Authenticate
-    decoded = authenticate(request)
-    if not decoded:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    # Authenticate user - get JWT payload directly (stateless)
+    user_doc = await get_authenticated_user(request)
 
-    # Get user
-    user_doc = await find_user_by_id(int(decoded["id"]))
-    if not user_doc:
-        raise HTTPException(status_code=401, detail="User not found")
-
-    
-
-    # Check permissions
-    if not await check_user_permissions(user_doc, "api-analytics"):
+    # Check permissions using JWT permission bits
+    if not has_verification_advanced_access(user_doc):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
     # Parse dates

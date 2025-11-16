@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Request
 from typing import Optional
 from datetime import datetime
-from utils.dbCalls.user_db import find_user_by_id, check_user_permissions
 from utils.dbCalls.analytics_db import create_analytics_entry
 from services.authService import auth_service
 from utils.api_tracking import track_external_api_call
-from utils.auth import authenticate_request
+from utils.auth import authenticate_request, get_authenticated_user
+from utils.permissions import has_verification_advanced_access
 import jwt
 import os
 import requests
@@ -82,29 +82,19 @@ async def verification_advanced(request: Request, data: VerificationRequest):
     print(f"Starting advanced verification for user with PAN: {data.pan_number[:4]}****")
 
     try:
-        # Authenticate user
-        decoded = authenticate_request(request)
-        if not decoded:
-            print("Authentication failed for verification request")
-            raise HTTPException(status_code=401, detail="Authentication required")
-
-        # Get user
-        user_doc = await find_user_by_id(int(decoded["id"]))
-        if not user_doc:
-            print(f"User not found for ID: {decoded['id']}")
-            raise HTTPException(status_code=401, detail="User not found")
-
+        # Authenticate user - get JWT payload directly (stateless)
+        user_doc = await get_authenticated_user(request)
+        
+        # Extract user details from JWT payload
+        user_id = str(user_doc.get("userId", ""))
         username = user_doc.get("username", "Unknown")
         user_role = user_doc.get("role", "user")
         print(f"Authenticated user: {username} (Role: {user_role})")
 
-        # Check permissions
-        if not await check_user_permissions(user_doc, "api-analytics"):
+        # Check permissions using JWT permission bits
+        if not has_verification_advanced_access(user_doc):
             print(f"Insufficient permissions for user: {username}")
             raise HTTPException(status_code=403, detail="Insufficient permissions")
-
-        # Extract user details for API calls
-        user_id = str(user_doc["id"])
         
         # Define API calls with priorities
         priority_api_calls = [

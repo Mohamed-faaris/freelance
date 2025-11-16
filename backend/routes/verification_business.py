@@ -73,7 +73,7 @@ async def post_gst_advanced_service(request: Request, data: GSTINAdvancedRequest
         if service == "gstin-advanced":
             # Use utility function for GSTIN verification with tracking
             response = await track_external_api_call(
-                str(user_doc["id"]),
+                str(user_doc["userId"]),
                 user_doc.get("username", ""),
                 user_doc.get("role", ""),
                 "verification/gstin-advanced",

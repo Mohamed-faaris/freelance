@@ -743,20 +743,8 @@ class CaseAnalysisService:
 
 # ===== AUTHENTICATION DEPENDENCY =====
 async def get_current_user(request: Request):
-    """Dependency to get current authenticated user"""
-    user = authenticate_request(request)
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    user_id = user.get("id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    # Get user document from database
-    from utils.dbCalls.user_db import find_user_by_id
-    user_doc = await find_user_by_id(int(user_id))
-    if not user_doc:
-        raise HTTPException(status_code=401, detail="User not found")
+    """Dependency to get current authenticated user via JWT"""
+    return await get_authenticated_user(request)
 
     return user_doc
 

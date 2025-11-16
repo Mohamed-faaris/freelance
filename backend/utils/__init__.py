@@ -30,6 +30,11 @@ from .permissions import (
     has_read_access,
     has_write_access,
     has_delete_access,
+    has_verification_advanced_access,
+    has_verification_lite_access,
+    has_verification_mini_access,
+    has_fssai_verification_access,
+    has_business_view_access,
     PERMISSION_READ,
     PERMISSION_WRITE,
     PERMISSION_DELETE,
@@ -37,6 +42,11 @@ from .permissions import (
     PERMISSION_SUPER_ADMIN,
     PERMISSION_READ_WRITE,
     PERMISSION_ALL,
+    PERMISSION_VERIFICATION_ADVANCED_VIEW,
+    PERMISSION_VERIFICATION_LITE_VIEW,
+    PERMISSION_VERIFICATION_MINI_VIEW,
+    PERMISSION_FSSAI_VERIFICATION_VIEW,
+    PERMISSION_BUSINESSVIEW,
 )
 
 from .api_tracking import (

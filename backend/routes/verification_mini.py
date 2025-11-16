@@ -2,15 +2,24 @@ from fastapi import APIRouter, HTTPException, Request
 from typing import Optional, List
 from datetime import datetime
 from bson import ObjectId
-from utils.dbCalls.user_db import find_user_by_id, check_user_permissions
 from utils.dbCalls.analytics_db import create_analytics_entry
 from services.authService import auth_service
 from utils.api_tracking import track_external_api_call
-from utils.auth import authenticate_request
+from utils.auth import authenticate_request, get_authenticated_user
+from utils.permissions import has_verification_mini_access
 import jwt
 import os
 import requests
 import asyncio
+from pydantic import BaseModel, ConfigDict
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Get access token function
+async def get_access_token():
+    return await auth_service.get_access_token()
 from pydantic import BaseModel, ConfigDict
 from dotenv import load_dotenv
 
@@ -149,21 +158,19 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
     print(f"Starting mini verification for user with mobile: {data.mobile}")
 
     try:
-        # Authenticate user
-        decoded = authenticate_request(request)
-        if not decoded:
-            print("Authentication failed for mini verification request")
-            raise HTTPException(status_code=401, detail="Authentication required")
-
-        # Get user
-        user_doc = await find_user_by_id(int(decoded["id"]))
-        if not user_doc:
-            print(f"User not found for ID: {decoded['id']}")
-            raise HTTPException(status_code=401, detail="User not found")
-
+        # Authenticate user - get JWT payload directly (stateless)
+        user_doc = await get_authenticated_user(request)
+        
+        # Extract user details from JWT payload
+        user_id = str(user_doc.get("userId", ""))
         username = user_doc.get("username", "Unknown")
         user_role = user_doc.get("role", "user")
         print(f"Authenticated user: {username} (Role: {user_role})")
+
+        # Check permissions using JWT permission bits
+        if not has_verification_mini_access(user_doc):
+            print(f"Insufficient permissions for user: {username}")
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
 
         # Validate required fields
         if not data.name or not data.dob or not data.mobile:
@@ -199,7 +206,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
             try:
                 await process_mobile_to_pan_verification(
                     data.mobile,
-                    str(user_doc["id"]),
+                    str(user_doc["userId"]),
                     username,
                     user_role,
                     verification_results
@@ -225,7 +232,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                 if verification_type == "aadhaar" and data.aadhaar_number:
                     await process_aadhaar_verification(
                         data.aadhaar_number,
-                        str(user_doc["id"]),
+                        str(user_doc["userId"]),
                         username,
                         user_role,
                         verification_results
@@ -237,7 +244,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if pan_to_verify:
                         await process_pan_verification(
                             pan_to_verify,
-                            str(user_doc["id"]),
+                            str(user_doc["userId"]),
                             username,
                             user_role,
                             verification_results
@@ -247,7 +254,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     await process_dl_verification(
                         data.dl_number,
                         formatted_dob,
-                        str(user_doc["id"]),
+                        str(user_doc["userId"]),
                         username,
                         user_role,
                         verification_results
@@ -256,7 +263,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                 elif verification_type == "rc-advanced" and data.rc_number:
                     await process_rc_advanced_verification(
                         data.rc_number,
-                        str(user_doc["id"]),
+                        str(user_doc["userId"]),
                         username,
                         user_role,
                         verification_results
@@ -265,7 +272,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                 elif verification_type == "rc-challan" and data.rc_number:
                     await process_rc_challan_verification(
                         data.rc_number,
-                        str(user_doc["id"]),
+                        str(user_doc["userId"]),
                         username,
                         user_role,
                         verification_results
@@ -277,7 +284,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if pan_for_uan:
                         uan_result = await process_pan_to_uan_verification(
                             pan_for_uan,
-                            str(user_doc["id"]),
+                            str(user_doc["userId"]),
                             username,
                             user_role,
                             verification_results
@@ -289,7 +296,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                             uan_result.get("verificationStatus") == "verified"):
                             await process_employment_history_verification(
                                 uan_result["uanNumber"],
-                                str(user_doc["id"]),
+                                str(user_doc["userId"]),
                                 username,
                                 user_role,
                                 verification_results
@@ -298,7 +305,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                 elif verification_type == "aadhaar-to-uan" and data.aadhaar_number:
                     uan_result = await process_aadhaar_to_uan_verification(
                         data.aadhaar_number,
-                        str(user_doc["id"]),
+                        str(user_doc["userId"]),
                         username,
                         user_role,
                         verification_results
@@ -310,7 +317,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         uan_result.get("verificationStatus") == "verified"):
                         await process_employment_history_verification(
                             uan_result["uanNumber"],
-                            str(user_doc["id"]),
+                            str(user_doc["userId"]),
                             username,
                             user_role,
                             verification_results
@@ -321,7 +328,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if mobile_for_uan:
                         uan_result = await process_mobile_to_uan_verification(
                             mobile_for_uan,
-                            str(user_doc["id"]),
+                            str(user_doc["userId"]),
                             username,
                             user_role,
                             verification_results
@@ -333,7 +340,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                             uan_result.get("verificationStatus") == "verified"):
                             await process_employment_history_verification(
                                 uan_result["uanNumber"],
-                                str(user_doc["id"]),
+                                str(user_doc["userId"]),
                                 username,
                                 user_role,
                                 verification_results
@@ -344,7 +351,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if mobile_for_mnrl:
                         await process_mnrl_verification(
                             mobile_for_mnrl,
-                            str(user_doc["id"]),
+                            str(user_doc["userId"]),
                             username,
                             user_role,
                             verification_results
@@ -355,7 +362,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     if epic_number:
                         await process_voter_id_verification(
                             epic_number,
-                            str(user_doc["id"]),
+                            str(user_doc["userId"]),
                             username,
                             user_role,
                             verification_results
@@ -367,7 +374,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                         await process_passport_verification(
                             file_number,
                             formatted_dob,
-                            str(user_doc["id"]),
+                            str(user_doc["userId"]),
                             username,
                             user_role,
                             verification_results
@@ -377,7 +384,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     await process_bank_account_verification(
                         data.bankAccount,
                         data.ifscCode,
-                        str(user_doc["id"]),
+                        str(user_doc["userId"]),
                         username,
                         user_role,
                         verification_results
@@ -387,7 +394,7 @@ async def verification_mini(request: Request, data: VerificationMiniRequest):
                     await process_upi_verification(
                         data.upi,
                         data.name,
-                        str(user_doc["id"]),
+                        str(user_doc["userId"]),
                         username,
                         user_role,
                         verification_results

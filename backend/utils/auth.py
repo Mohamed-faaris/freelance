@@ -5,8 +5,37 @@ No database lookups needed - authorization is based on permissionBits in JWT.
 """
 
 from fastapi import HTTPException, Request
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from utils.jwt_parser import validate_jwt_from_cookie
+
+
+def authenticate_request(request: Request) -> Optional[Dict[str, Any]]:
+    """
+    Backward-compatible synchronous authentication function.
+    Decodes JWT from auth_token cookie without raising exceptions.
+    
+    Args:
+        request: FastAPI request object
+    
+    Returns:
+        Decoded JWT payload if valid, None otherwise
+    
+    Note:
+        This is a synchronous wrapper for backward compatibility.
+        New code should use get_authenticated_user() instead.
+    """
+    token = request.cookies.get("auth_token")
+    
+    if not token:
+        return None
+
+    # Validate and decode JWT
+    payload, is_valid, error = validate_jwt_from_cookie(token)
+
+    if not is_valid:
+        return None
+
+    return payload
 
 
 async def get_authenticated_user(request: Request) -> Dict[str, Any]:

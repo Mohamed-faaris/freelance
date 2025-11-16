@@ -12,6 +12,7 @@ This package contains various utility modules:
 """
 
 from .auth import (
+    authenticate_request,
     get_authenticated_user,
 )
 
@@ -70,6 +71,7 @@ from .api_analytics import log_api_call
 
 __all__ = [
     # Auth utilities
+    "authenticate_request",
     "get_authenticated_user",
 
     # JWT utilities

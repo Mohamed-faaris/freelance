@@ -1,4 +1,3 @@
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 import os
@@ -10,6 +9,24 @@ load_dotenv()
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Lazy imports for fastapi_mail to avoid Pydantic v2 compatibility issues
+FastMail = None
+MessageSchema = None
+ConnectionConfig = None
+
+def _import_fastapi_mail():
+    """Lazy import fastapi_mail"""
+    global FastMail, MessageSchema, ConnectionConfig
+    if FastMail is None:
+        try:
+            from fastapi_mail import FastMail as FM, MessageSchema as MS, ConnectionConfig as CC
+            FastMail = FM
+            MessageSchema = MS
+            ConnectionConfig = CC
+        except Exception as e:
+            logger.warning(f"Could not import fastapi_mail: {e}")
+    return FastMail, MessageSchema, ConnectionConfig
 
 # ===== MAIL SERVICE CONFIGURATION =====
 class MailConfig:
@@ -31,9 +48,13 @@ class MailConfig:
     ENABLE_MAILING = os.getenv("ENABLE_MAILING", "true").lower() == "true"
 
 # ===== FASTAPI MAIL CONFIGURATION =====
-def create_fastapi_mail_config() -> ConnectionConfig:
+def create_fastapi_mail_config():
     """Create FastAPI-Mail configuration"""
-    return ConnectionConfig(
+    _, _, CC = _import_fastapi_mail()
+    if CC is None:
+        raise ImportError("fastapi_mail could not be imported")
+    
+    return CC(
         MAIL_USERNAME=MailConfig.SMTP_USERNAME,
         MAIL_PASSWORD=MailConfig.SMTP_PASSWORD,
         MAIL_FROM=MailConfig.FROM_EMAIL,
@@ -65,10 +86,14 @@ class MailService:
         try:
             # Only initialize if we have credentials
             if MailConfig.SMTP_USERNAME and MailConfig.SMTP_PASSWORD:
-                self.config = create_fastapi_mail_config()
-                self.fastmail = FastMail(self.config)
-                self.initialized = True
-                logger.info("Mail service initialized successfully")
+                FM, MS, CC = _import_fastapi_mail()
+                if FM and CC:
+                    self.config = create_fastapi_mail_config()
+                    self.fastmail = FM(self.config)
+                    self.initialized = True
+                    logger.info("Mail service initialized successfully")
+                else:
+                    logger.warning("Mail service: fastapi_mail could not be imported")
             else:
                 logger.warning("Mail service: Missing SMTP credentials (USER/PASS environment variables)")
         except Exception as e:
@@ -82,7 +107,8 @@ class MailService:
             return False
 
         try:
-            message = MessageSchema(
+            FM, MS, CC = _import_fastapi_mail()
+            message = MS(
                 subject=email_data.subject,
                 recipients=email_data.recipients,
                 body= email_data.body + email_data.html_body,

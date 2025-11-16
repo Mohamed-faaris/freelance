@@ -4,7 +4,7 @@ import jwt
 import os
 import requests
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from bson import ObjectId
 from utils.dbCalls.user_db import find_user_by_id
@@ -45,11 +45,11 @@ async def track_insta_api_call(
     api_function,
     *args
 ):
-    start_time = datetime.utcnow()
+    start_time = datetime.now(timezone.utc)
 
     try:
         result = await api_function(*args)
-        response_time = (datetime.utcnow() - start_time).total_seconds() * 1000  # in milliseconds
+        response_time = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000  # in milliseconds
         cost = INSTA_API_COSTS.get(service, 5.0)
 
         await log_api_call({
@@ -66,12 +66,12 @@ async def track_insta_api_call(
             "requestData": args[0] if args else None,
             "responseData": result,
             "businessId": None,
-            "createdAt": datetime.utcnow()
+            "createdAt": datetime.now(timezone.utc)
         })
 
         return result
     except Exception as error:
-        response_time = (datetime.utcnow() - start_time).total_seconds() * 1000
+        response_time = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
         await log_api_call({
             "userId": ObjectId(user_id),
             "username": username,
@@ -88,7 +88,7 @@ async def track_insta_api_call(
                 "error": str(error)
             },
             "businessId": None,
-            "createdAt": datetime.utcnow()
+            "createdAt": datetime.now(timezone.utc)
         })
         raise error
 
@@ -222,7 +222,7 @@ async def post_insta_financials(request: Request):
                     "summary": "success" if summary_data else "failed",
                     "basic": "success" if basic_data else "failed",
                 },
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         }
 

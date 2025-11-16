@@ -1,4 +1,3 @@
-import { API_URL } from "../../config";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -61,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch(`${API_URL}/user`, {
+        const res = await fetch(`${import.meta.env.VITE_AUTH_API_URL}/user`, {
           // Add cache control headers to prevent caching
           headers: {
             "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -104,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       // Step 1: Authenticate with credentials - external auth server handles this
-      const authRes = (await fetch(`${import.meta.env.VITE_AUTH_API_URL}/user`, {
+      const authRes = await fetch(`${import.meta.env.VITE_AUTH_API_URL}/user`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -112,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           Pragma: "no-cache",
         },
         credentials: "include", // Cookies set by external auth server
-      })) 
+      });
 
       if (!authRes.ok) {
         if (authRes.status === 401) {

@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from datetime import datetime, timezone
 from .news import newsRoute
 from .states import statesRoute
 from .court_cases import court_cases_router
@@ -39,6 +40,17 @@ servicesMainRouter.include_router(sendFssaiEmailRouter, prefix="/send-fssai-emai
 servicesMainRouter.include_router(educationVerificationRouter, prefix="", tags=["education-verification"])
 
 mainRouter = APIRouter()
+
+# Timestamp endpoint with status 200
+@mainRouter.get("", tags=["health"])
+async def get_timestamp():
+    """Get current timestamp with status 200"""
+    return {
+        "message": "Fast-API service is running",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "status": "ok",
+        "code": 200
+    }
 
 # Include education verification routes
 mainRouter.include_router(educationVerificationRouter, prefix="", tags=["education-verification"])

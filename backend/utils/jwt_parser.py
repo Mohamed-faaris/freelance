@@ -6,7 +6,7 @@ Decodes and validates JWT tokens from auth_token cookie.
 import jwt
 import os
 from typing import Dict, Any, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
@@ -71,7 +71,7 @@ def extract_jwt_claims(decoded_jwt: Dict[str, Any]) -> Dict[str, Any]:
     # Validate expiration
     exp_timestamp = decoded_jwt.get("exp")
     if exp_timestamp:
-        current_time = datetime.utcnow().timestamp()
+        current_time = datetime.now(timezone.utc).timestamp()
         if current_time > exp_timestamp:
             return {
                 "is_valid": False,
